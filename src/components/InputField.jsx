@@ -5,8 +5,9 @@ export default function InputField({
   label,
   type,
   placeholder,
+  value,
+  onChange,
 }) {
-
   const [showPassword, setShowPassword] = useState(false);
 
   const inputType =
@@ -40,6 +41,8 @@ export default function InputField({
         <input
           type={inputType}
           placeholder={placeholder}
+          value={value}
+          onChange={onChange}
           className="
             w-full
             rounded-2xl
@@ -53,7 +56,6 @@ export default function InputField({
             outline-none
             transition-all
             duration-300
-
             focus:border-violet-500
             focus:ring-2
             focus:ring-violet-500/40
@@ -61,15 +63,10 @@ export default function InputField({
           "
         />
 
-        {/* Password Toggle */}
-
         {type === "password" && (
-
           <button
             type="button"
-            onClick={() =>
-              setShowPassword(!showPassword)
-            }
+            onClick={() => setShowPassword(!showPassword)}
             className="
               absolute
               right-5
@@ -80,15 +77,12 @@ export default function InputField({
               transition
             "
           >
-
             {showPassword ? (
               <EyeOff size={20} />
             ) : (
               <Eye size={20} />
             )}
-
           </button>
-
         )}
 
       </div>

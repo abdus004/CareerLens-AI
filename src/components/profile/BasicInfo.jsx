@@ -1,38 +1,70 @@
 import { useState } from "react";
 import InputField from "../InputField";
-import { FcNext } from "react-icons/fc";
 
 export default function BasicInfo({ onNext, onBack }) {
+  const [name, setName] = useState("");
+  const [age, setAge] = useState("");
+  const [phone, setPhone] = useState("");
   const [gender, setGender] = useState("");
+  const [error, setError] = useState("");
+
+  const handleNext = () => {
+    if (!name.trim()) {
+      setError("Please enter your full name.");
+      return;
+    }
+
+    if (!age) {
+      setError("Please enter your age.");
+      return;
+    }
+
+    if (Number(age) < 16 || Number(age) > 100) {
+      setError("Please enter a valid age.");
+      return;
+    }
+
+    if (!gender) {
+      setError("Please select your gender.");
+      return;
+    }
+
+    setError("");
+    onNext();
+  };
 
   return (
     <div>
-
-      {/* Full Name */}
 
       <InputField
         label="Full Name"
         type="text"
         placeholder="Enter your full name"
+        value={name}
+        onChange={(e) => {
+          setName(e.target.value);
+          setError("");
+        }}
       />
-
-      {/* Age */}
 
       <InputField
         label="Age"
         type="number"
         placeholder="Enter your age"
+        value={age}
+        onChange={(e) => {
+          setAge(e.target.value);
+          setError("");
+        }}
       />
-
-      {/* Phone */}
 
       <InputField
         label="Phone Number (Optional)"
         type="tel"
         placeholder="Enter your phone number"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
       />
-
-      {/* Gender */}
 
       <h3 className="text-white font-semibold mt-6 mb-4">
         Gender
@@ -43,14 +75,19 @@ export default function BasicInfo({ onNext, onBack }) {
         {["Male", "Female", "Other"].map((item) => (
 
           <button
+            type="button"
             key={item}
-            onClick={() => setGender(item)}
+            onClick={() => {
+              setGender(item);
+              setError("");
+            }}
             className={`
               py-4
               rounded-2xl
               border
               transition-all
               duration-300
+
               ${
                 gender === item
                   ? "border-violet-500 bg-violet-500/20 text-white"
@@ -65,7 +102,23 @@ export default function BasicInfo({ onNext, onBack }) {
 
       </div>
 
-      {/* Buttons */}
+      {error && (
+        <div
+          className="
+            mt-5
+            rounded-xl
+            border
+            border-red-500/30
+            bg-red-500/10
+            px-4
+            py-3
+            text-red-300
+            text-sm
+          "
+        >
+          {error}
+        </div>
+      )}
 
       <div className="flex justify-between mt-10">
 
@@ -87,7 +140,7 @@ export default function BasicInfo({ onNext, onBack }) {
         </button>
 
         <button
-          onClick={onNext}
+          onClick={handleNext}
           className="
             px-8
             py-3

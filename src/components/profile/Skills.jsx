@@ -2,7 +2,6 @@ import { useState } from "react";
 import InputField from "../InputField";
 
 export default function Skills({ onNext, onBack }) {
-
   const defaultSkills = [
     "Python",
     "Java",
@@ -21,12 +20,14 @@ export default function Skills({ onNext, onBack }) {
     "Deep Learning",
     "Data Structures",
     "Problem Solving",
-    "Communication"
+    "Communication",
   ];
 
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [skillLevels, setSkillLevels] = useState({});
   const [showOther, setShowOther] = useState(false);
+  const [otherSkill, setOtherSkill] = useState("");
+  const [error, setError] = useState("");
 
   const toggleSkill = (skill) => {
     if (selectedSkills.includes(skill)) {
@@ -34,6 +35,8 @@ export default function Skills({ onNext, onBack }) {
     } else {
       setSelectedSkills([...selectedSkills, skill]);
     }
+
+    setError("");
   };
 
   const setLevel = (skill, level) => {
@@ -41,6 +44,19 @@ export default function Skills({ onNext, onBack }) {
       ...skillLevels,
       [skill]: level,
     });
+  };
+
+  const handleNext = () => {
+    if (
+      selectedSkills.length === 0 &&
+      otherSkill.trim() === ""
+    ) {
+      setError("Please select at least one skill.");
+      return;
+    }
+
+    setError("");
+    onNext();
   };
 
   return (
@@ -55,6 +71,7 @@ export default function Skills({ onNext, onBack }) {
         {defaultSkills.map((skill) => (
 
           <button
+            type="button"
             key={skill}
             onClick={() => toggleSkill(skill)}
             className={`
@@ -77,8 +94,6 @@ export default function Skills({ onNext, onBack }) {
 
       </div>
 
-      {/* Selected Skills */}
-
       {selectedSkills.length > 0 && (
 
         <div className="mt-10">
@@ -94,15 +109,11 @@ export default function Skills({ onNext, onBack }) {
               <div className="flex justify-between mb-2">
 
                 <span className="text-white">
-
                   {skill}
-
                 </span>
 
                 <span className="text-violet-400">
-
                   {skillLevels[skill] || 1}/5
-
                 </span>
 
               </div>
@@ -126,9 +137,8 @@ export default function Skills({ onNext, onBack }) {
 
       )}
 
-      {/* Other Skill */}
-
       <button
+        type="button"
         onClick={() => setShowOther(!showOther)}
         className="text-violet-400 mt-6"
       >
@@ -143,13 +153,22 @@ export default function Skills({ onNext, onBack }) {
             label="Other Skill"
             type="text"
             placeholder="Example: Flutter"
+            value={otherSkill}
+            onChange={(e) => {
+              setOtherSkill(e.target.value);
+              setError("");
+            }}
           />
 
         </div>
 
       )}
 
-      {/* Navigation */}
+      {error && (
+        <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-300 text-sm">
+          {error}
+        </div>
+      )}
 
       <div className="flex justify-between mt-10">
 
@@ -171,7 +190,7 @@ export default function Skills({ onNext, onBack }) {
         </button>
 
         <button
-          onClick={onNext}
+          onClick={handleNext}
           className="
             px-8
             py-3

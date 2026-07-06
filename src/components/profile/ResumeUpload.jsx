@@ -10,6 +10,12 @@ export default function ResumeUpload({ onNext, onBack }) {
     }
   };
 
+  const handleFinish = () => {
+    // Resume is optional
+    // Later we'll save everything to backend
+    onNext();
+  };
+
   return (
     <div>
 
@@ -18,11 +24,9 @@ export default function ResumeUpload({ onNext, onBack }) {
       </h3>
 
       <p className="text-gray-400 mb-8">
-        This step is optional. Uploading your resume helps CareerLens AI
-        provide better recommendations.
+        Uploading a resume is optional, but it helps CareerLens AI provide
+        more personalized career recommendations.
       </p>
-
-      {/* Upload Box */}
 
       <label
         className="
@@ -41,9 +45,8 @@ export default function ResumeUpload({ onNext, onBack }) {
           py-14
         "
       >
-
         <Upload
-          size={50}
+          size={48}
           className="text-violet-400 mb-5"
         />
 
@@ -52,7 +55,7 @@ export default function ResumeUpload({ onNext, onBack }) {
         </h4>
 
         <p className="text-gray-400 mt-2 text-center">
-          PDF, DOC or DOCX
+          PDF, DOC, DOCX
           <br />
           (Optional)
         </p>
@@ -63,34 +66,28 @@ export default function ResumeUpload({ onNext, onBack }) {
           className="hidden"
           onChange={handleFileChange}
         />
-
       </label>
 
-      {/* Selected File */}
-
       {file && (
-
         <div
           className="
             mt-6
             rounded-2xl
-            bg-violet-500/10
             border
             border-violet-500/30
+            bg-violet-500/10
             p-5
             flex
             items-center
             gap-4
           "
         >
-
           <FileText
             size={28}
             className="text-violet-400"
           />
 
           <div>
-
             <h4 className="text-white font-semibold">
               Resume Selected
             </h4>
@@ -98,14 +95,10 @@ export default function ResumeUpload({ onNext, onBack }) {
             <p className="text-gray-400 text-sm">
               {file.name}
             </p>
-
           </div>
 
         </div>
-
       )}
-
-      {/* Navigation */}
 
       <div className="flex justify-between mt-10">
 
@@ -127,7 +120,7 @@ export default function ResumeUpload({ onNext, onBack }) {
         </button>
 
         <button
-          onClick={onNext}
+          onClick={handleFinish}
           className="
             px-8
             py-3

@@ -13,9 +13,10 @@ import {
 import InputField from "../InputField";
 
 export default function CareerInterest({ onNext, onBack }) {
-
   const [selectedRoles, setSelectedRoles] = useState([]);
   const [showOther, setShowOther] = useState(false);
+  const [otherCareer, setOtherCareer] = useState("");
+  const [error, setError] = useState("");
 
   const roles = [
     { name: "AI Engineer", icon: Brain },
@@ -34,6 +35,21 @@ export default function CareerInterest({ onNext, onBack }) {
     } else {
       setSelectedRoles([...selectedRoles, role]);
     }
+
+    setError("");
+  };
+
+  const handleNext = () => {
+    if (
+      selectedRoles.length === 0 &&
+      otherCareer.trim() === ""
+    ) {
+      setError("Please select at least one career interest.");
+      return;
+    }
+
+    setError("");
+    onNext();
   };
 
   return (
@@ -52,6 +68,7 @@ export default function CareerInterest({ onNext, onBack }) {
           return (
 
             <button
+              type="button"
               key={role.name}
               onClick={() => toggleRole(role.name)}
               className={`
@@ -62,7 +79,6 @@ export default function CareerInterest({ onNext, onBack }) {
                 items-center
                 gap-4
                 transition-all
-                duration-300
 
                 ${
                   selectedRoles.includes(role.name)
@@ -71,17 +87,12 @@ export default function CareerInterest({ onNext, onBack }) {
                 }
               `}
             >
-
               <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 flex items-center justify-center">
-
                 <Icon size={24} className="text-white" />
-
               </div>
 
               <span className="text-white font-medium">
-
                 {role.name}
-
               </span>
 
             </button>
@@ -92,21 +103,12 @@ export default function CareerInterest({ onNext, onBack }) {
 
       </div>
 
-      {/* Other */}
-
       <button
+        type="button"
         onClick={() => setShowOther(!showOther)}
-        className="
-          mt-6
-          flex
-          items-center
-          gap-3
-          text-violet-400
-          hover:text-violet-300
-        "
+        className="mt-6 flex items-center gap-3 text-violet-400 hover:text-violet-300"
       >
         <Plus size={20} />
-
         Add Other Career
       </button>
 
@@ -118,13 +120,22 @@ export default function CareerInterest({ onNext, onBack }) {
             label="Other Career"
             type="text"
             placeholder="Example: Blockchain Developer"
+            value={otherCareer}
+            onChange={(e) => {
+              setOtherCareer(e.target.value);
+              setError("");
+            }}
           />
 
         </div>
 
       )}
 
-      {/* Navigation */}
+      {error && (
+        <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-300 text-sm">
+          {error}
+        </div>
+      )}
 
       <div className="flex justify-between mt-10">
 
@@ -146,7 +157,7 @@ export default function CareerInterest({ onNext, onBack }) {
         </button>
 
         <button
-          onClick={onNext}
+          onClick={handleNext}
           className="
             px-8
             py-3

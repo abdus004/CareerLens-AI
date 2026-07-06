@@ -6,7 +6,13 @@ export default function Education({
   onNext,
   onBack,
 }) {
+  const [college, setCollege] = useState("");
   const [degree, setDegree] = useState("");
+  const [otherDegree, setOtherDegree] = useState("");
+  const [branch, setBranch] = useState("");
+  const [year, setYear] = useState("");
+  const [cgpa, setCgpa] = useState("");
+  const [error, setError] = useState("");
 
   const degrees = [
     "B.E",
@@ -20,10 +26,51 @@ export default function Education({
     "Other",
   ];
 
+  const handleNext = () => {
+    if (!college.trim()) {
+      setError(
+        userType === "Student"
+          ? "Please enter your college name."
+          : "Please enter your qualification."
+      );
+      return;
+    }
+
+    if (!degree) {
+      setError("Please select your degree.");
+      return;
+    }
+
+    if (degree === "Other" && !otherDegree.trim()) {
+      setError("Please specify your degree.");
+      return;
+    }
+
+    if (!branch.trim()) {
+      setError("Please enter your branch.");
+      return;
+    }
+
+    if (!year) {
+      setError(
+        userType === "Student"
+          ? "Please enter your current year."
+          : "Please enter your graduation year."
+      );
+      return;
+    }
+
+    if (!cgpa) {
+      setError("Please enter your CGPA.");
+      return;
+    }
+
+    setError("");
+    onNext();
+  };
+
   return (
     <div>
-
-      {/* First Field */}
 
       <InputField
         label={
@@ -37,9 +84,12 @@ export default function Education({
             ? "Enter your college name"
             : "Enter your qualification"
         }
+        value={college}
+        onChange={(e) => {
+          setCollege(e.target.value);
+          setError("");
+        }}
       />
-
-      {/* Degree */}
 
       <h3 className="text-white font-semibold mt-6 mb-4">
         Degree
@@ -50,8 +100,12 @@ export default function Education({
         {degrees.map((item) => (
 
           <button
+            type="button"
             key={item}
-            onClick={() => setDegree(item)}
+            onClick={() => {
+              setDegree(item);
+              setError("");
+            }}
             className={`
               py-3
               rounded-xl
@@ -71,8 +125,6 @@ export default function Education({
 
       </div>
 
-      {/* Other Degree */}
-
       {degree === "Other" && (
 
         <div className="mt-5">
@@ -81,21 +133,27 @@ export default function Education({
             label="Specify Degree"
             type="text"
             placeholder="Enter your degree"
+            value={otherDegree}
+            onChange={(e) => {
+              setOtherDegree(e.target.value);
+              setError("");
+            }}
           />
 
         </div>
 
       )}
 
-      {/* Branch */}
-
       <InputField
         label="Branch / Department"
         type="text"
         placeholder="Example: AI & DS"
+        value={branch}
+        onChange={(e) => {
+          setBranch(e.target.value);
+          setError("");
+        }}
       />
-
-      {/* Year */}
 
       <InputField
         label={
@@ -109,17 +167,29 @@ export default function Education({
             ? "Enter current year"
             : "Enter graduation year"
         }
+        value={year}
+        onChange={(e) => {
+          setYear(e.target.value);
+          setError("");
+        }}
       />
-
-      {/* CGPA */}
 
       <InputField
         label="CGPA"
         type="number"
         placeholder="Example: 8.45"
+        value={cgpa}
+        onChange={(e) => {
+          setCgpa(e.target.value);
+          setError("");
+        }}
       />
 
-      {/* Buttons */}
+      {error && (
+        <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-300 text-sm">
+          {error}
+        </div>
+      )}
 
       <div className="flex justify-between mt-10">
 
@@ -141,7 +211,7 @@ export default function Education({
         </button>
 
         <button
-          onClick={onNext}
+          onClick={handleNext}
           className="
             px-8
             py-3
