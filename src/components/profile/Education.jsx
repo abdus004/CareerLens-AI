@@ -6,11 +6,12 @@ export default function Education({
   onNext,
   onBack,
 }) {
+
   const [college, setCollege] = useState("");
   const [degree, setDegree] = useState("");
   const [otherDegree, setOtherDegree] = useState("");
   const [branch, setBranch] = useState("");
-  const [year, setYear] = useState("");
+  const [graduationYear, setGraduationYear] = useState("");
   const [cgpa, setCgpa] = useState("");
   const [error, setError] = useState("");
 
@@ -26,91 +27,77 @@ export default function Education({
     "Other",
   ];
 
-  const handleNext = () => {
-    if (!college.trim()) {
-      setError(
-        userType === "Student"
-          ? "Please enter your college name."
-          : "Please enter your qualification."
-      );
-      return;
-    }
+const handleNext=()=>{
 
-    if (!degree) {
-      setError("Please select your degree.");
-      return;
-    }
+onNext();
 
-    if (degree === "Other" && !otherDegree.trim()) {
-      setError("Please specify your degree.");
-      return;
-    }
-
-    if (!branch.trim()) {
-      setError("Please enter your branch.");
-      return;
-    }
-
-    if (!year) {
-      setError(
-        userType === "Student"
-          ? "Please enter your current year."
-          : "Please enter your graduation year."
-      );
-      return;
-    }
-
-    if (!cgpa) {
-      setError("Please enter your CGPA.");
-      return;
-    }
-
-    setError("");
-    onNext();
-  };
+}
 
   return (
+
     <div>
 
-      <InputField
-        label={
-          userType === "Student"
-            ? "College Name"
-            : "Highest Qualification"
-        }
-        type="text"
-        placeholder={
-          userType === "Student"
-            ? "Enter your college name"
-            : "Enter your qualification"
-        }
-        value={college}
-        onChange={(e) => {
-          setCollege(e.target.value);
-          setError("");
-        }}
-      />
+      {/* College + Branch */}
 
-      <h3 className="text-white font-semibold mt-6 mb-4">
-        Degree
+      <div className="grid md:grid-cols-2 gap-6">
+
+        <InputField
+          label={
+            userType === "Student"
+              ? "College Name *"
+              : "Highest Qualification *"
+          }
+          type="text"
+          placeholder={
+            userType === "Student"
+              ? "Enter your college"
+              : "Enter your qualification"
+          }
+          value={college}
+          onChange={(e) => {
+            setCollege(e.target.value);
+            setError("");
+          }}
+        />
+
+        <InputField
+          label="Branch / Department *"
+          type="text"
+          placeholder="Example: AI & DS"
+          value={branch}
+          onChange={(e) => {
+            setBranch(e.target.value);
+            setError("");
+          }}
+        />
+
+      </div>
+
+      {/* Degree */}
+
+      <h3 className="text-white font-semibold mt-8 mb-4">
+
+        Degree *
+
       </h3>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid md:grid-cols-5 grid-cols-3 gap-4">
 
         {degrees.map((item) => (
 
           <button
-            type="button"
             key={item}
+            type="button"
             onClick={() => {
               setDegree(item);
               setError("");
             }}
             className={`
               py-3
-              rounded-xl
+              rounded-2xl
               border
               transition-all
+
               ${
                 degree === item
                   ? "border-violet-500 bg-violet-500/20 text-white"
@@ -118,7 +105,9 @@ export default function Education({
               }
             `}
           >
+
             {item}
+
           </button>
 
         ))}
@@ -127,7 +116,7 @@ export default function Education({
 
       {degree === "Other" && (
 
-        <div className="mt-5">
+        <div className="mt-6">
 
           <InputField
             label="Specify Degree"
@@ -142,63 +131,67 @@ export default function Education({
 
         </div>
 
-      )}
+      )}      {/* Graduation Year + CGPA */}
 
-      <InputField
-        label="Branch / Department"
-        type="text"
-        placeholder="Example: AI & DS"
-        value={branch}
-        onChange={(e) => {
-          setBranch(e.target.value);
-          setError("");
-        }}
-      />
+      <div className="grid md:grid-cols-2 gap-6 mt-10">
 
-      <InputField
-        label={
-          userType === "Student"
-            ? "Current Year"
-            : "Graduation Year"
-        }
-        type="number"
-        placeholder={
-          userType === "Student"
-            ? "Enter current year"
-            : "Enter graduation year"
-        }
-        value={year}
-        onChange={(e) => {
-          setYear(e.target.value);
-          setError("");
-        }}
-      />
+        <InputField
+          label="Graduation Year *"
+          type="number"
+          placeholder="Example: 2027"
+          value={graduationYear}
+          onChange={(e) => {
+            setGraduationYear(e.target.value);
+            setError("");
+          }}
+        />
 
-      <InputField
-        label="CGPA"
-        type="number"
-        placeholder="Example: 8.45"
-        value={cgpa}
-        onChange={(e) => {
-          setCgpa(e.target.value);
-          setError("");
-        }}
-      />
+        <InputField
+          label="CGPA *"
+          type="number"
+          placeholder="Example: 8.75"
+          value={cgpa}
+          onChange={(e) => {
+            setCgpa(e.target.value);
+            setError("");
+          }}
+        />
+
+      </div>
+
+      {/* Error Message */}
 
       {error && (
-        <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-300 text-sm">
+
+        <div
+          className="
+            mt-8
+            rounded-2xl
+            border
+            border-red-500/30
+            bg-red-500/10
+            px-5
+            py-4
+            text-red-300
+          "
+        >
+
           {error}
+
         </div>
+
       )}
 
-      <div className="flex justify-between mt-10">
+      {/* Navigation Buttons */}
+
+      <div className="flex justify-between mt-12">
 
         <button
           onClick={onBack}
           className="
             px-8
             py-3
-            rounded-xl
+            rounded-2xl
             border
             border-white/10
             bg-white/5
@@ -213,23 +206,26 @@ export default function Education({
         <button
           onClick={handleNext}
           className="
-            px-8
+            px-10
             py-3
-            rounded-xl
+            rounded-2xl
             bg-gradient-to-r
             from-violet-600
-            to-fuchsia-600
+            via-fuchsia-600
+            to-cyan-500
             text-white
             font-semibold
-            hover:scale-105
+            hover:scale-[1.02]
             transition
           "
         >
-          Next →
+          Continue →
         </button>
 
       </div>
 
     </div>
+
   );
+
 }

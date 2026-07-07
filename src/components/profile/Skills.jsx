@@ -2,157 +2,172 @@ import { useState } from "react";
 import InputField from "../InputField";
 
 export default function Skills({ onNext, onBack }) {
-  const defaultSkills = [
-    "Python",
-    "Java",
-    "C",
-    "C++",
-    "JavaScript",
-    "React",
-    "Node.js",
-    "SQL",
-    "MongoDB",
-    "HTML",
-    "CSS",
-    "Git",
-    "GitHub",
-    "Machine Learning",
-    "Deep Learning",
-    "Data Structures",
-    "Problem Solving",
-    "Communication",
-  ];
+
+  const skillCategories = {
+    "Programming Languages": [
+      "Python",
+      "Java",
+      "C",
+      "C++",
+      "JavaScript",
+    ],
+
+    Frameworks: [
+      "React",
+      "Node.js",
+      "Express",
+      "Flask",
+      "Django",
+    ],
+
+    Databases: [
+      "MongoDB",
+      "MySQL",
+      "PostgreSQL",
+      "SQLite",
+    ],
+
+    Tools: [
+      "Git",
+      "GitHub",
+      "Docker",
+      "VS Code",
+      "Postman",
+    ],
+
+    "Soft Skills": [
+      "Problem Solving",
+      "Communication",
+      "Leadership",
+      "Teamwork",
+    ],
+  };
 
   const [selectedSkills, setSelectedSkills] = useState([]);
-  const [skillLevels, setSkillLevels] = useState({});
   const [showOther, setShowOther] = useState(false);
   const [otherSkill, setOtherSkill] = useState("");
   const [error, setError] = useState("");
 
   const toggleSkill = (skill) => {
+
     if (selectedSkills.includes(skill)) {
-      setSelectedSkills(selectedSkills.filter((s) => s !== skill));
+
+      setSelectedSkills(
+        selectedSkills.filter((s) => s !== skill)
+      );
+
     } else {
-      setSelectedSkills([...selectedSkills, skill]);
+
+      setSelectedSkills([
+        ...selectedSkills,
+        skill,
+      ]);
+
     }
 
     setError("");
-  };
 
-  const setLevel = (skill, level) => {
-    setSkillLevels({
-      ...skillLevels,
-      [skill]: level,
-    });
   };
 
   const handleNext = () => {
+
     if (
       selectedSkills.length === 0 &&
       otherSkill.trim() === ""
     ) {
-      setError("Please select at least one skill.");
+
+      setError(
+        "Please select at least one skill."
+      );
+
       return;
+
     }
 
     setError("");
+
     onNext();
+
   };
 
   return (
+
     <div>
 
-      <h3 className="text-white text-xl font-semibold mb-6">
-        Select Your Skills
-      </h3>
+      {Object.entries(skillCategories).map(
+        ([category, skills]) => (
 
-      <div className="grid md:grid-cols-2 gap-4">
-
-        {defaultSkills.map((skill) => (
-
-          <button
-            type="button"
-            key={skill}
-            onClick={() => toggleSkill(skill)}
-            className={`
-              rounded-xl
-              border
-              py-3
-              transition-all
-
-              ${
-                selectedSkills.includes(skill)
-                  ? "border-violet-500 bg-violet-500/20 text-white"
-                  : "border-white/10 bg-white/5 text-gray-300 hover:border-violet-400"
-              }
-            `}
+          <div
+            key={category}
+            className="mb-10"
           >
-            {skill}
-          </button>
 
-        ))}
+            <h3 className="text-white text-xl font-bold mb-5">
 
-      </div>
+              {category}
 
-      {selectedSkills.length > 0 && (
+            </h3>
 
-        <div className="mt-10">
+            <div className="grid md:grid-cols-3 gap-4">
 
-          <h3 className="text-white text-lg font-semibold mb-5">
-            Skill Level
-          </h3>
+              {skills.map((skill) => (
 
-          {selectedSkills.map((skill) => (
+                <button
+                  key={skill}
+                  type="button"
+                  onClick={() =>
+                    toggleSkill(skill)
+                  }
+                  className={`
+                    py-3
+                    rounded-2xl
+                    border
+                    transition-all
+                    duration-300
 
-            <div key={skill} className="mb-6">
+                    ${
+                      selectedSkills.includes(skill)
+                        ? "border-violet-500 bg-violet-500/20 text-white"
+                        : "border-white/10 bg-white/5 text-gray-300 hover:border-violet-400"
+                    }
+                  `}
+                >
 
-              <div className="flex justify-between mb-2">
-
-                <span className="text-white">
                   {skill}
-                </span>
 
-                <span className="text-violet-400">
-                  {skillLevels[skill] || 1}/5
-                </span>
+                </button>
 
-              </div>
-
-              <input
-                type="range"
-                min="1"
-                max="5"
-                value={skillLevels[skill] || 1}
-                onChange={(e) =>
-                  setLevel(skill, e.target.value)
-                }
-                className="w-full accent-violet-500"
-              />
+              ))}
 
             </div>
 
-          ))}
+          </div>
 
-        </div>
-
-      )}
+        )
+      )}      {/* Add Other Skill */}
 
       <button
         type="button"
         onClick={() => setShowOther(!showOther)}
-        className="text-violet-400 mt-6"
+        className="
+          text-violet-400
+          font-semibold
+          hover:text-violet-300
+          transition
+          mt-2
+        "
       >
         + Add Other Skill
       </button>
 
       {showOther && (
 
-        <div className="mt-4">
+        <div className="mt-6">
 
           <InputField
-            label="Other Skill"
+            label="Other Skill (Optional)"
             type="text"
-            placeholder="Example: Flutter"
+            placeholder="Example: TensorFlow"
             value={otherSkill}
             onChange={(e) => {
               setOtherSkill(e.target.value);
@@ -164,20 +179,39 @@ export default function Skills({ onNext, onBack }) {
 
       )}
 
+      {/* Error */}
+
       {error && (
-        <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-300 text-sm">
+
+        <div
+          className="
+            mt-8
+            rounded-2xl
+            border
+            border-red-500/30
+            bg-red-500/10
+            px-5
+            py-4
+            text-red-300
+          "
+        >
+
           {error}
+
         </div>
+
       )}
 
-      <div className="flex justify-between mt-10">
+      {/* Buttons */}
+
+      <div className="flex justify-between mt-12">
 
         <button
           onClick={onBack}
           className="
             px-8
             py-3
-            rounded-xl
+            rounded-2xl
             border
             border-white/10
             bg-white/5
@@ -192,23 +226,25 @@ export default function Skills({ onNext, onBack }) {
         <button
           onClick={handleNext}
           className="
-            px-8
+            px-10
             py-3
-            rounded-xl
+            rounded-2xl
             bg-gradient-to-r
             from-violet-600
-            to-fuchsia-600
+            via-fuchsia-600
+            to-cyan-500
             text-white
             font-semibold
-            hover:scale-105
+            hover:scale-[1.02]
             transition
           "
         >
-          Next →
+          Continue →
         </button>
 
       </div>
 
     </div>
+
   );
 }

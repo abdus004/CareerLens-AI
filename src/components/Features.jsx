@@ -1,77 +1,148 @@
-import { motion } from "framer-motion";
 import {
   Brain,
-  Compass,
+  Target,
+  Map,
   FileText,
-  GraduationCap,
+  BarChart3,
+  Briefcase,
 } from "lucide-react";
+
+import { motion } from "framer-motion";
 
 const features = [
   {
     icon: Brain,
-    title: "AI Career Recommendation",
-    desc: "Get intelligent career suggestions based on your interests, skills, and goals.",
+    title: "AI Career Recommendations",
+    description:
+      "Receive personalized career suggestions based on your education, skills, interests and goals.",
   },
   {
-    icon: Compass,
-    title: "Career Roadmap",
-    desc: "Receive a personalized learning roadmap to achieve your dream IT career.",
+    icon: Target,
+    title: "Career Match Score",
+    description:
+      "Discover how well your profile matches different IT careers with AI-powered compatibility scoring.",
+  },
+  {
+    icon: Map,
+    title: "Personalized Learning Roadmap",
+    description:
+      "Follow a customized roadmap that guides you from beginner to industry-ready professional.",
   },
   {
     icon: FileText,
-    title: "Resume Analysis",
-    desc: "Analyze your resume and discover improvements using AI.",
+    title: "AI Resume Analyzer",
+    description:
+      "Upload your resume and receive instant AI feedback with ATS scoring and improvement suggestions.",
   },
   {
-    icon: GraduationCap,
+    icon: BarChart3,
     title: "Skill Gap Analysis",
-    desc: "Find missing skills and get recommendations to improve them.",
+    description:
+      "Identify missing technical skills and receive recommendations to improve your profile.",
+  },
+  {
+    icon: Briefcase,
+    title: "Placement & Job Opportunities",
+    description:
+      "Explore internships and placements that match your profile and career goals.",
   },
 ];
 
+const containerVariants = {
+  hidden: {},
+
+  visible: {
+    transition: {
+      staggerChildren: 0.12,
+    },
+  },
+};
+
+const cardVariants = {
+  hidden: {
+    opacity: 0,
+    y: 45,
+  },
+
+  visible: {
+    opacity: 1,
+    y: 0,
+
+    transition: {
+      duration: 0.55,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
+};
+
 export default function Features() {
   return (
-    <section className="relative bg-[#050816] py-32 overflow-hidden">
+    <section
+      id="features"
+      className="relative py-28 px-6 overflow-hidden"
+    >
 
       {/* Background Glow */}
 
-      <div className="absolute top-0 left-0 w-80 h-80 bg-violet-600/20 blur-[140px] rounded-full"></div>
+      <div className="absolute inset-0 -z-10">
 
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-500/20 blur-[180px] rounded-full"></div>
+        <div className="absolute top-24 left-24 w-96 h-96 rounded-full bg-violet-700/10 blur-[140px]" />
 
-      <div className="max-w-7xl mx-auto px-8">
+        <div className="absolute bottom-24 right-20 w-[420px] h-[420px] rounded-full bg-cyan-500/10 blur-[150px]" />
+
+      </div>
+
+      <div className="max-w-7xl mx-auto">
 
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
+          transition={{
+            duration: 0.7,
+          }}
+          className="text-center mb-20"
         >
 
-          <h2 className="text-5xl font-black text-white text-center">
+          <p className="text-violet-400 font-semibold tracking-[0.25em] uppercase mb-5">
 
-            Why Choose
+            CareerLens AI
 
-            <span className="bg-gradient-to-r from-violet-400 to-fuchsia-500 bg-clip-text text-transparent">
+          </p>
 
-              {" "}CareerLens AI
+          <h2 className="text-5xl md:text-6xl font-black text-white leading-tight">
+
+            Everything You Need
+
+            <span className="block mt-2 bg-gradient-to-r from-violet-400 via-fuchsia-500 to-cyan-400 bg-clip-text text-transparent">
+
+              To Build Your Career
 
             </span>
 
           </h2>
 
-          <p className="text-center text-gray-400 mt-6 max-w-3xl mx-auto text-lg">
+          <p className="max-w-3xl mx-auto mt-8 text-gray-400 text-xl leading-9">
 
-            Everything you need to discover the right IT career and build your future with confidence.
+            CareerLens AI combines AI-powered career guidance,
+            resume analysis, learning roadmaps, placement
+            opportunities and skill analysis into one
+            intelligent platform.
 
           </p>
 
         </motion.div>
 
-        {/* Cards */}
-
-        <div className="grid lg:grid-cols-2 gap-8 mt-20">
-
-          {features.map((feature, index) => {
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{
+            once: true,
+            amount: 0.15,
+          }}
+          className="grid lg:grid-cols-3 md:grid-cols-2 gap-8"
+        >          {features.map((feature, index) => {
 
             const Icon = feature.icon;
 
@@ -79,55 +150,91 @@ export default function Features() {
 
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.15 }}
+                variants={cardVariants}
                 whileHover={{
-                  y: -10,
+                  y: -8,
+                  scale: 1.02,
+                }}
+                transition={{
+                  duration: 0.25,
                 }}
                 className="
                   group
+                  relative
+                  overflow-hidden
                   rounded-3xl
-                  bg-white/5
-                  backdrop-blur-xl
                   border
                   border-white/10
+                  bg-white/[0.05]
+                  backdrop-blur-2xl
                   p-8
-                  hover:border-violet-500/40
                   transition-all
-                  duration-500
+                  duration-300
+                  hover:border-violet-400/40
+                  hover:shadow-[0_15px_40px_rgba(139,92,246,.18)]
                 "
               >
 
+                {/* Glow Overlay */}
+
                 <div
                   className="
+                    absolute
+                    inset-0
+                    opacity-0
+                    group-hover:opacity-100
+                    transition-opacity
+                    duration-500
+                    bg-gradient-to-br
+                    from-violet-500/10
+                    via-transparent
+                    to-cyan-500/10
+                  "
+                />
+
+                {/* Icon */}
+
+                <div
+                  className="
+                    relative
                     w-16
                     h-16
                     rounded-2xl
                     bg-gradient-to-br
-                    from-violet-500
+                    from-violet-600
                     to-fuchsia-600
                     flex
                     items-center
                     justify-center
-                    shadow-[0_0_25px_rgba(139,92,246,.45)]
+                    mb-7
+                    shadow-[0_8px_25px_rgba(139,92,246,.25)]
+                    transition-all
+                    duration-300
+                    group-hover:scale-105
+                    group-hover:shadow-[0_10px_35px_rgba(139,92,246,.35)]
                   "
                 >
 
-                  <Icon size={30} className="text-white" />
+                  <Icon
+                    size={30}
+                    className="text-white"
+                  />
 
                 </div>
 
-                <h3 className="text-white text-2xl font-bold mt-8">
+                {/* Title */}
+
+                <h3 className="relative text-2xl font-bold text-white mb-4">
 
                   {feature.title}
 
                 </h3>
 
-                <p className="text-gray-400 mt-4 leading-8">
+                {/* Description */}
 
-                  {feature.desc}
+                <p className="relative text-gray-400 leading-8">
+
+                  {feature.description}
 
                 </p>
 
@@ -137,7 +244,7 @@ export default function Features() {
 
           })}
 
-        </div>
+        </motion.div>
 
       </div>
 

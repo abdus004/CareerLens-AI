@@ -11,58 +11,50 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const handleSignup = () => {
-    // Empty fields
-    if (!name || !email || !password || !confirmPassword) {
-      alert("Please fill all fields.");
-      return;
-    }
+  const [nameError, setNameError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(email)) {
-      alert("Please enter a valid email.");
-      return;
-    }
-
-    // Password length
-    if (password.length < 8) {
-      alert("Password must be at least 8 characters.");
-      return;
-    }
-
-    // Confirm password
-    if (password !== confirmPassword) {
-      alert("Passwords do not match.");
-      return;
-    }
-
-    // Save account locally
-    const user = {
-      name,
-      email,
-      password,
-    };
-
-    localStorage.setItem("user", JSON.stringify(user));
-
-    alert("Account created successfully!");
-
-    navigate("/profile-setup");
+  const clearErrors = () => {
+    setNameError("");
+    setEmailError("");
+    setPasswordError("");
+    setConfirmPasswordError("");
   };
+
+  const handleSignup = () => {
+
+  const user = {
+    name,
+    email,
+    password,
+  };
+
+  localStorage.setItem(
+    "user",
+    JSON.stringify(user)
+  );
+
+  navigate("/profile-setup");
+};
 
   return (
     <AuthLayout
       title="Create Account 🚀"
       subtitle="Start your AI career journey with CareerLens AI."
     >
+
       <InputField
         label="Full Name"
         type="text"
         placeholder="Enter your full name"
         value={name}
-        onChange={(e) => setName(e.target.value)}
+        error={nameError}
+        onChange={(e) => {
+          setName(e.target.value);
+          setNameError("");
+        }}
       />
 
       <InputField
@@ -70,7 +62,11 @@ export default function Signup() {
         type="email"
         placeholder="Enter your email"
         value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        error={emailError}
+        onChange={(e) => {
+          setEmail(e.target.value);
+          setEmailError("");
+        }}
       />
 
       <InputField
@@ -78,7 +74,11 @@ export default function Signup() {
         type="password"
         placeholder="Create a password"
         value={password}
-        onChange={(e) => setPassword(e.target.value)}
+        error={passwordError}
+        onChange={(e) => {
+          setPassword(e.target.value);
+          setPasswordError("");
+        }}
       />
 
       <InputField
@@ -86,7 +86,11 @@ export default function Signup() {
         type="password"
         placeholder="Confirm your password"
         value={confirmPassword}
-        onChange={(e) => setConfirmPassword(e.target.value)}
+        error={confirmPasswordError}
+        onChange={(e) => {
+          setConfirmPassword(e.target.value);
+          setConfirmPasswordError("");
+        }}
       />
 
       <button
@@ -97,7 +101,8 @@ export default function Signup() {
           rounded-2xl
           bg-gradient-to-r
           from-violet-600
-          to-fuchsia-600
+          via-fuchsia-600
+          to-cyan-500
           text-white
           text-lg
           font-semibold
@@ -110,7 +115,8 @@ export default function Signup() {
         Continue
       </button>
 
-      <p className="text-center text-gray-400 mt-4">
+      <p className="text-center text-gray-400 mt-5">
+
         Already have an account?
 
         <button
@@ -125,7 +131,9 @@ export default function Signup() {
         >
           Sign In
         </button>
+
       </p>
+
     </AuthLayout>
   );
 }

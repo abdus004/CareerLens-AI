@@ -1,113 +1,408 @@
 import { useState } from "react";
-import { Upload, FileText } from "lucide-react";
+import InputField from "../InputField";
 
-export default function ResumeUpload({ onNext, onBack }) {
-  const [file, setFile] = useState(null);
+export default function Portfolio({ onNext, onBack }) {
 
-  const handleFileChange = (e) => {
-    if (e.target.files.length > 0) {
-      setFile(e.target.files[0]);
-    }
-  };
+  const [projectName, setProjectName] = useState("");
+  const [githubLink, setGithubLink] = useState("");
+  const [liveLink, setLiveLink] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
+
+  const [internshipRole, setInternshipRole] = useState("");
+  const [company, setCompany] = useState("");
+  const [duration, setDuration] = useState("");
+  const [internshipCertificate, setInternshipCertificate] =
+    useState(null);
+
+  const [certificateName, setCertificateName] =
+    useState("");
+  const [organization, setOrganization] =
+    useState("");
+  const [issueYear, setIssueYear] =
+    useState("");
+  const [certificateFile, setCertificateFile] =
+    useState(null);
+
+  const [resume, setResume] =
+    useState(null);
 
   const handleFinish = () => {
-    // Resume is optional
-    // Later we'll save everything to backend
     onNext();
   };
 
   return (
-    <div>
 
-      <h3 className="text-white text-xl font-semibold mb-3">
-        Upload Your Resume
-      </h3>
+    <div className="space-y-10">
 
-      <p className="text-gray-400 mb-8">
-        Uploading a resume is optional, but it helps CareerLens AI provide
-        more personalized career recommendations.
+      <p className="text-gray-400">
+
+        Everything on this page is optional.
+        You can always update your portfolio later.
+
       </p>
 
-      <label
-        className="
-          flex
-          flex-col
-          items-center
-          justify-center
-          border-2
-          border-dashed
-          border-violet-500/40
-          rounded-3xl
-          bg-white/5
-          hover:bg-white/10
-          transition-all
-          cursor-pointer
-          py-14
-        "
-      >
-        <Upload
-          size={48}
-          className="text-violet-400 mb-5"
-        />
+      {/* ================= PROJECT ================= */}
 
-        <h4 className="text-white text-lg font-semibold">
-          Click to Upload Resume
-        </h4>
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
 
-        <p className="text-gray-400 mt-2 text-center">
-          PDF, DOC, DOCX
-          <br />
-          (Optional)
-        </p>
+        <h2 className="text-2xl font-bold text-white mb-6">
 
-        <input
-          type="file"
-          accept=".pdf,.doc,.docx"
-          className="hidden"
-          onChange={handleFileChange}
-        />
-      </label>
+          📁 Project
 
-      {file && (
-        <div
-          className="
-            mt-6
-            rounded-2xl
-            border
-            border-violet-500/30
-            bg-violet-500/10
-            p-5
-            flex
-            items-center
-            gap-4
-          "
-        >
-          <FileText
-            size={28}
-            className="text-violet-400"
+        </h2>
+
+        <div className="grid md:grid-cols-2 gap-6">
+
+          <InputField
+            label="Project Name"
+            type="text"
+            placeholder="AI Resume Analyzer"
+            value={projectName}
+            onChange={(e)=>
+              setProjectName(e.target.value)
+            }
           />
 
-          <div>
-            <h4 className="text-white font-semibold">
-              Resume Selected
-            </h4>
-
-            <p className="text-gray-400 text-sm">
-              {file.name}
-            </p>
-          </div>
+          <InputField
+            label="GitHub Repository"
+            type="url"
+            placeholder="https://github.com/..."
+            value={githubLink}
+            onChange={(e)=>
+              setGithubLink(e.target.value)
+            }
+          />
 
         </div>
-      )}
 
-      <div className="flex justify-between mt-10">
+        <div className="mt-6">
+
+          <InputField
+            label="Live Demo Link"
+            type="url"
+            placeholder="https://yourproject.com"
+            value={liveLink}
+            onChange={(e)=>
+              setLiveLink(e.target.value)
+            }
+          />
+
+        </div>
+
+        <div className="mt-6">
+
+          <label className="block text-white mb-2">
+
+            Project Description
+
+          </label>
+
+          <textarea
+
+            rows="4"
+
+            placeholder="Describe your project..."
+
+            value={projectDescription}
+
+            onChange={(e)=>
+              setProjectDescription(e.target.value)
+            }
+
+            className="
+              w-full
+              rounded-2xl
+              border
+              border-white/10
+              bg-white/5
+              px-5
+              py-4
+              text-white
+              placeholder:text-gray-500
+              outline-none
+              focus:border-violet-500
+            "
+          />
+
+        </div>
+
+      </div>
+
+      {/* ================= INTERNSHIP ================= */}
+
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
+
+        <h2 className="text-2xl font-bold text-white mb-6">
+
+          💼 Internship
+
+        </h2>
+
+        <div className="grid md:grid-cols-2 gap-6">
+
+          <InputField
+            label="Internship Role"
+            type="text"
+            placeholder="AI Intern"
+            value={internshipRole}
+            onChange={(e)=>
+              setInternshipRole(e.target.value)
+            }
+          />
+
+          <InputField
+            label="Company"
+            type="text"
+            placeholder="Infosys"
+            value={company}
+            onChange={(e)=>
+              setCompany(e.target.value)
+            }
+          />
+
+          <InputField
+            label="Duration"
+            type="text"
+            placeholder="2 Months"
+            value={duration}
+            onChange={(e)=>
+              setDuration(e.target.value)
+            }
+          />
+
+        </div>
+
+        <div className="mt-6">
+
+          <label
+            className="
+              flex
+              justify-center
+              items-center
+              border-2
+              border-dashed
+              border-violet-500/30
+              rounded-3xl
+              py-10
+              bg-white/5
+              cursor-pointer
+              hover:border-violet-500
+              transition
+            "
+          >
+
+            <input
+
+              type="file"
+
+              accept=".pdf,.jpg,.jpeg,.png"
+
+              className="hidden"
+
+              onChange={(e)=>{
+
+                if(e.target.files.length>0){
+
+                  setInternshipCertificate(
+                    e.target.files[0]
+                  );
+
+                }
+
+              }}
+
+            />
+
+            <span className="text-gray-300">
+
+              Upload Internship Certificate
+
+            </span>
+
+          </label>
+
+          {internshipCertificate && (
+
+            <p className="text-green-400 mt-4">
+
+              ✅ {internshipCertificate.name}
+
+            </p>
+
+          )}
+
+        </div>
+
+      </div>      {/* ================= CERTIFICATIONS ================= */}
+
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
+
+        <h2 className="text-2xl font-bold text-white mb-6">
+          🏆 Certification
+        </h2>
+
+        <div className="grid md:grid-cols-2 gap-6">
+
+          <InputField
+            label="Certificate Name"
+            type="text"
+            placeholder="Google Data Analytics"
+            value={certificateName}
+            onChange={(e) =>
+              setCertificateName(e.target.value)
+            }
+          />
+
+          <InputField
+            label="Issued By"
+            type="text"
+            placeholder="Google"
+            value={organization}
+            onChange={(e) =>
+              setOrganization(e.target.value)
+            }
+          />
+
+          <InputField
+            label="Issue Year"
+            type="number"
+            placeholder="2026"
+            value={issueYear}
+            onChange={(e) =>
+              setIssueYear(e.target.value)
+            }
+          />
+
+        </div>
+
+        <div className="mt-6">
+
+          <label
+            className="
+              flex
+              justify-center
+              items-center
+              border-2
+              border-dashed
+              border-violet-500/30
+              rounded-3xl
+              py-10
+              bg-white/5
+              cursor-pointer
+              hover:border-violet-500
+              transition
+            "
+          >
+
+            <input
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              className="hidden"
+              onChange={(e) => {
+
+                if (e.target.files.length > 0) {
+
+                  setCertificateFile(
+                    e.target.files[0]
+                  );
+
+                }
+
+              }}
+            />
+
+            <span className="text-gray-300">
+              Upload Certificate
+            </span>
+
+          </label>
+
+          {certificateFile && (
+
+            <p className="text-green-400 mt-4">
+
+              ✅ {certificateFile.name}
+
+            </p>
+
+          )}
+
+        </div>
+
+      </div>
+
+      {/* ================= RESUME ================= */}
+
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
+
+        <h2 className="text-2xl font-bold text-white mb-6">
+          📄 Resume
+        </h2>
+
+        <label
+          className="
+            flex
+            justify-center
+            items-center
+            border-2
+            border-dashed
+            border-violet-500/30
+            rounded-3xl
+            py-12
+            bg-white/5
+            cursor-pointer
+            hover:border-violet-500
+            transition
+          "
+        >
+
+          <input
+            type="file"
+            accept=".pdf,.doc,.docx"
+            className="hidden"
+            onChange={(e) => {
+
+              if (e.target.files.length > 0) {
+
+                setResume(
+                  e.target.files[0]
+                );
+
+              }
+
+            }}
+          />
+
+          <span className="text-gray-300">
+
+            Upload Resume
+
+          </span>
+
+        </label>
+
+        {resume && (
+
+          <p className="text-green-400 mt-4">
+
+            ✅ {resume.name}
+
+          </p>
+
+        )}
+
+      </div>
+
+      {/* ================= BUTTONS ================= */}
+
+      <div className="flex justify-between pt-4">
 
         <button
           onClick={onBack}
           className="
             px-8
             py-3
-            rounded-xl
+            rounded-2xl
             border
             border-white/10
             bg-white/5
@@ -122,15 +417,16 @@ export default function ResumeUpload({ onNext, onBack }) {
         <button
           onClick={handleFinish}
           className="
-            px-8
+            px-10
             py-3
-            rounded-xl
+            rounded-2xl
             bg-gradient-to-r
             from-violet-600
-            to-fuchsia-600
+            via-fuchsia-600
+            to-cyan-500
             text-white
             font-semibold
-            hover:scale-105
+            hover:scale-[1.02]
             transition
           "
         >
@@ -140,5 +436,7 @@ export default function ResumeUpload({ onNext, onBack }) {
       </div>
 
     </div>
+
   );
+
 }
