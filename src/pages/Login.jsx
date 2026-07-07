@@ -83,25 +83,26 @@ export default function Login() {
       )}
 
       <button
-        onClick={handleLogin}
-        className="
-          w-full
-          py-3
-          rounded-2xl
-          bg-gradient-to-r
-          from-violet-600
-          to-fuchsia-600
-          text-white
-          text-lg
-          font-semibold
-          hover:scale-[1.02]
-          transition-all
-          duration-300
-          shadow-[0_0_30px_rgba(139,92,246,.35)]
-        "
-      >
-        Sign In
-      </button>
+  onClick={handleLogin}
+  className="
+    w-full
+    py-3
+    rounded-2xl
+    bg-gradient-to-r
+    from-violet-600
+    via-fuchsia-600
+    to-cyan-500
+    text-white
+    text-lg
+    font-semibold
+    hover:scale-[1.02]
+    transition-all
+    duration-300
+    shadow-[0_0_30px_rgba(139,92,246,.35)]
+  "
+>
+  Sign In
+</button>
 
       <p className="text-center text-gray-400 mt-4">
         Don't have an account?

@@ -157,22 +157,25 @@ export default function CareerInterest({ onNext, onBack }) {
         </button>
 
         <button
-          onClick={handleNext}
-          className="
-            px-8
-            py-3
-            rounded-xl
-            bg-gradient-to-r
-            from-violet-600
-            to-fuchsia-600
-            text-white
-            font-semibold
-            hover:scale-105
-            transition
-          "
-        >
-          Next →
-        </button>
+  onClick={handleNext}
+  className="
+    px-10
+    py-3
+    rounded-2xl
+    bg-gradient-to-r
+    from-violet-600
+    via-fuchsia-600
+    to-cyan-500
+    text-white
+    font-semibold
+    hover:scale-[1.02]
+    transition-all
+    duration-300
+    shadow-[0_0_30px_rgba(139,92,246,.35)]
+  "
+>
+  Continue →
+</button>
 
       </div>
 
