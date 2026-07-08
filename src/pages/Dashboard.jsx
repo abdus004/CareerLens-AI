@@ -3,9 +3,16 @@ import { useState } from "react";
 import Sidebar from "../components/dashboard/Sidebar";
 import Navbar from "../components/dashboard/Navbar";
 
+import WelcomeCard from "../components/dashboard/WelcomeCard";
 import StatsCards from "../components/dashboard/StatsCards";
 import CareerMatchCard from "../components/dashboard/CareerMatchCard";
 import ResumeScoreCard from "../components/dashboard/ResumeScoreCard";
+import SkillProgress from "../components/dashboard/SkillProgress";
+import RecommendedCareers from "../components/dashboard/RecommendedCareers";
+import DailyGoals from "../components/dashboard/DailyGoals";
+import AISuggestions from "../components/dashboard/AISuggestions";
+import Opportunities from "../components/dashboard/Opportunities";
+import RecentActivity from "../components/dashboard/RecentActivity";
 
 export default function Dashboard() {
 
@@ -13,7 +20,7 @@ export default function Dashboard() {
 
   return (
 
-    <div className="flex min-h-screen bg-[#050816]">
+    <div className="flex h-screen bg-[#050816] overflow-hidden">
 
       {/* Sidebar */}
 
@@ -22,16 +29,9 @@ export default function Dashboard() {
         setCollapsed={setCollapsed}
       />
 
-      {/* Main Content */}
+      {/* Main */}
 
-      <div
-        className="
-          flex-1
-          flex
-          flex-col
-          bg-[#050816]
-        "
-      >
+      <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* Navbar */}
 
@@ -42,32 +42,60 @@ export default function Dashboard() {
         <main
           className="
             flex-1
-            p-6
-            bg-[#050816]
             overflow-y-auto
+            bg-[#050816]
+            px-6
+            py-5
           "
         >
 
-          <div className="space-y-6">
+          <div className="max-w-[1700px] mx-auto space-y-5">
 
-            {/* Top Stats */}
+            {/* Welcome */}
+
+            <WelcomeCard />
+
+            {/* Stats */}
 
             <StatsCards />
 
-            {/* Main Cards */}
+            {/* Career + Resume */}
 
-            <div
-              className="
-                grid
-                grid-cols-1
-                xl:grid-cols-2
-                gap-6
-              "
-            >
+            <div className="grid md:grid-cols-2 gap-5">
 
               <CareerMatchCard />
 
               <ResumeScoreCard />
+
+            </div>
+
+            {/* Skills + Careers */}
+
+            <div className="grid md:grid-cols-2 gap-5">
+
+              <SkillProgress />
+
+              <RecommendedCareers />
+
+            </div>
+
+            {/* Goals + AI */}
+
+            <div className="grid md:grid-cols-2 gap-5">
+
+              <DailyGoals />
+
+              <AISuggestions />
+
+            </div>
+
+            {/* Opportunities + Activity */}
+
+            <div className="grid md:grid-cols-2 gap-5">
+
+              <Opportunities />
+
+              <RecentActivity />
 
             </div>
 

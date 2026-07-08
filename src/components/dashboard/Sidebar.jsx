@@ -49,7 +49,7 @@ const menuItems = [
     icon: ClipboardList,
     title: "Assessments",
   },
-    {
+  {
     icon: Award,
     title: "Certificates",
   },
@@ -73,11 +73,12 @@ export default function Sidebar({
         duration-300
         flex
         flex-col
-        min-h-screen
+        h-screen
 
         ${collapsed ? "w-[75px]" : "w-[240px]"}
       `}
     >
+
       {/* Logo */}
 
       <div
@@ -87,22 +88,38 @@ export default function Sidebar({
           ${collapsed ? "justify-center" : "justify-between"}
           px-5
           py-6
+          flex-shrink-0
         `}
       >
+
         {!collapsed && (
+
           <div>
+
             <h1 className="text-3xl font-black">
-              <span className="text-white">Career</span>
+
+              <span className="text-white">
+
+                Career
+
+              </span>
 
               <span className="bg-gradient-to-r from-violet-400 via-fuchsia-500 to-cyan-400 bg-clip-text text-transparent">
+
                 Lens AI
+
               </span>
+
             </h1>
 
             <p className="text-xs text-gray-500 tracking-[0.3em] mt-1">
+
               AI POWERED
+
             </p>
+
           </div>
+
         )}
 
         <button
@@ -121,152 +138,215 @@ export default function Sidebar({
             justify-center
           "
         >
-          <Menu size={18} className="text-white" />
-        </button>
-      </div>
 
-      {/* Navigation */}
-
-      <nav className="px-3 pb-5 space-y-2">        {menuItems.map((item) => {
-
-          const Icon = item.icon;
-
-          return (
-
-            <button
-              key={item.title}
-              className={`
-                w-full
-                flex
-                items-center
-                ${
-                  collapsed
-                    ? "justify-center"
-                    : "justify-start"
-                }
-                gap-4
-                px-4
-                py-3
-                rounded-2xl
-                transition-all
-                duration-300
-
-                ${
-                  item.active
-                    ? "bg-gradient-to-r from-violet-600 via-fuchsia-600 to-cyan-500 text-white shadow-lg"
-                    : "text-gray-400 hover:bg-white/5 hover:text-white"
-                }
-              `}
-            >
-
-              <Icon size={20} />
-
-              {!collapsed && (
-
-                <span className="font-medium">
-
-                  {item.title === "Job Recommendations"
-                    ? "Opportunities"
-                    : item.title}
-
-                </span>
-
-              )}
-
-            </button>
-
-          );
-
-        })}
-
-      </nav>
-
-      {/* Bottom */}
-
-      <div className="mt-auto px-3 pb-5 space-y-2">
-
-        <button
-          className={`
-            w-full
-            flex
-            items-center
-            ${
-              collapsed
-                ? "justify-center"
-                : "justify-start"
-            }
-            gap-4
-            px-4
-            py-3
-            rounded-2xl
-            text-gray-400
-            hover:bg-white/5
-            hover:text-white
-            transition-all
-          `}
-        >
-
-          <Settings size={20} />
-
-          {!collapsed && <span>Settings</span>}
-
-        </button>
-
-        <button
-          className={`
-            w-full
-            flex
-            items-center
-            ${
-              collapsed
-                ? "justify-center"
-                : "justify-start"
-            }
-            gap-4
-            px-4
-            py-3
-            rounded-2xl
-            text-gray-400
-            hover:bg-white/5
-            hover:text-white
-            transition-all
-          `}
-        >
-
-          <HelpCircle size={20} />
-
-          {!collapsed && <span>Help & Support</span>}
-
-        </button>
-
-        <button
-          className={`
-            w-full
-            flex
-            items-center
-            ${
-              collapsed
-                ? "justify-center"
-                : "justify-start"
-            }
-            gap-4
-            px-4
-            py-3
-            rounded-2xl
-            text-red-400
-            hover:bg-red-500/10
-            transition-all
-          `}
-        >
-
-          <LogOut size={20} />
-
-          {!collapsed && <span>Logout</span>}
+          <Menu
+            size={18}
+            className="text-white"
+          />
 
         </button>
 
       </div>
 
+                  {/* Navigation */}
+
+      <div
+        className="
+          flex-1
+          overflow-y-auto
+          px-3
+          py-3
+
+          [scrollbar-width:none]
+          [-ms-overflow-style:none]
+          [&::-webkit-scrollbar]:hidden
+        "
+      >
+
+        <nav className="space-y-2">
+
+          {menuItems.map((item) => {
+
+            const Icon = item.icon;
+
+            return (
+
+              <button
+                key={item.title}
+                className={`
+                  w-full
+                  flex
+                  items-center
+                  ${
+                    collapsed
+                      ? "justify-center"
+                      : "justify-start"
+                  }
+                  gap-4
+                  px-4
+                  py-3
+                  rounded-2xl
+                  transition-all
+                  duration-300
+
+                  ${
+                    item.active
+                      ? "bg-gradient-to-r from-violet-600 via-fuchsia-600 to-cyan-500 text-white shadow-lg"
+                      : "text-gray-400 hover:bg-white/5 hover:text-white"
+                  }
+                `}
+              >
+
+                <Icon
+                  size={20}
+                  className="flex-shrink-0"
+                />
+
+                {!collapsed && (
+
+                  <span className="font-medium">
+
+                    {item.title === "Job Recommendations"
+                      ? "Opportunities"
+                      : item.title}
+
+                  </span>
+
+                )}
+
+              </button>
+
+            );
+
+          })}
+
+          {/* Divider */}
+
+          <div className="border-t border-white/10 my-5"></div>
+
+          {/* Settings */}
+
+          <button
+            className={`
+              w-full
+              flex
+              items-center
+              ${
+                collapsed
+                  ? "justify-center"
+                  : "justify-start"
+              }
+              gap-4
+              px-4
+              py-3
+              rounded-2xl
+              text-gray-400
+              hover:bg-white/5
+              hover:text-white
+              transition-all
+            `}
+          >
+
+            <Settings
+              size={20}
+              className="flex-shrink-0"
+            />
+
+            {!collapsed && (
+
+              <span className="font-medium">
+
+                Settings
+
+              </span>
+
+            )}
+
+          </button>
+
+          {/* Help */}
+
+          <button
+            className={`
+              w-full
+              flex
+              items-center
+              ${
+                collapsed
+                  ? "justify-center"
+                  : "justify-start"
+              }
+              gap-4
+              px-4
+              py-3
+              rounded-2xl
+              text-gray-400
+              hover:bg-white/5
+              hover:text-white
+              transition-all
+            `}
+          >
+
+            <HelpCircle
+              size={20}
+              className="flex-shrink-0"
+            />
+
+            {!collapsed && (
+
+              <span className="font-medium">
+
+                Help & Support
+
+              </span>
+
+            )}
+
+          </button>
+
+          {/* Logout */}
+
+          <button
+            className={`
+              w-full
+              flex
+              items-center
+              ${
+                collapsed
+                  ? "justify-center"
+                  : "justify-start"
+              }
+              gap-4
+              px-4
+              py-3
+              rounded-2xl
+              text-red-400
+              hover:bg-red-500/10
+              transition-all
+            `}
+          >
+
+            <LogOut
+              size={20}
+              className="flex-shrink-0"
+            />
+
+            {!collapsed && (
+
+              <span className="font-medium">
+
+                Logout
+
+              </span>
+
+            )}
+
+          </button>
+
+        </nav>
+
+      </div>
+      
     </aside>
 
   );

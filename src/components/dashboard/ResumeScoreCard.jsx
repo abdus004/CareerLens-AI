@@ -1,4 +1,5 @@
 import { FileText, ArrowRight } from "lucide-react";
+import DashboardCard from "../common/DashboardCard";
 
 export default function ResumeScoreCard({
 
@@ -8,124 +9,81 @@ export default function ResumeScoreCard({
 
 }) {
 
-  const radius = 60;
-  const circumference = 2 * Math.PI * radius;
-
-  const offset =
-    circumference -
-    (score / 100) * circumference;
-
   return (
 
-    <div
-      className="
-        rounded-3xl
-        border
-        border-white/10
-        bg-white/5
-        backdrop-blur-xl
-        p-7
-      "
+    <DashboardCard
+      title="Resume Score"
+      subtitle="ATS Resume Analysis"
+      icon={<FileText size={22} />}
     >
 
-      {/* Heading */}
+      <div className="flex justify-between items-center mt-2">
 
-      <div className="flex justify-between items-center">
+        {/* Left */}
 
         <div>
 
-          <h2 className="text-2xl font-bold text-white">
+          <h1 className="text-5xl font-bold text-cyan-400">
 
-            Resume Score
+            {score}%
 
-          </h2>
+          </h1>
 
-          <p className="text-gray-400 mt-1">
+          <p className="text-gray-400 mt-2">
 
-            ATS Analysis
+            Resume Quality
 
           </p>
 
-        </div>
+          <h2 className="text-xl font-semibold text-white mt-1">
 
-        <div
-          className="
-            w-12
-            h-12
-            rounded-xl
-            bg-cyan-500/20
-            flex
-            items-center
-            justify-center
-          "
-        >
+            {level}
 
-          <FileText
-            size={24}
-            className="text-cyan-400"
-          />
+          </h2>
 
         </div>
 
-      </div>
+        {/* Right */}
 
-      {/* Score */}
+        <div className="w-28">
 
-      <div className="flex justify-center mt-8">
+          <div className="flex justify-between text-sm mb-2">
 
-        <div className="relative w-40 h-40">
-
-          <svg
-            width="160"
-            height="160"
-            className="-rotate-90"
-          >
-
-            <circle
-              cx="80"
-              cy="80"
-              r={radius}
-              stroke="#2A2E45"
-              strokeWidth="12"
-              fill="none"
-            />
-
-            <circle
-              cx="80"
-              cy="80"
-              r={radius}
-              stroke="#06B6D4"
-              strokeWidth="12"
-              fill="none"
-              strokeDasharray={circumference}
-              strokeDashoffset={offset}
-              strokeLinecap="round"
-            />
-
-          </svg>
-
-          <div
-            className="
-              absolute
-              inset-0
-              flex
-              flex-col
-              items-center
-              justify-center
-            "
-          >
-
-            <h1 className="text-4xl font-bold text-white">
-
-              {score}%
-
-            </h1>
-
-            <p className="text-gray-400 text-sm">
+            <span className="text-gray-400">
 
               Score
 
-            </p>
+            </span>
+
+            <span className="text-white">
+
+              {score}%
+
+            </span>
+
+          </div>
+
+          <div
+            className="
+              h-3
+              rounded-full
+              bg-white/10
+              overflow-hidden
+            "
+          >
+
+            <div
+              className="
+                h-full
+                rounded-full
+                bg-gradient-to-r
+                from-cyan-500
+                to-blue-500
+              "
+              style={{
+                width: `${score}%`,
+              }}
+            />
 
           </div>
 
@@ -133,62 +91,46 @@ export default function ResumeScoreCard({
 
       </div>
 
-      {/* Resume Level */}
+      {/* Footer */}
 
       <div
         className="
-          mt-8
-          rounded-2xl
-          bg-[#0B1023]
-          border
+          mt-6
+          pt-4
+          border-t
           border-white/10
-          p-5
+          flex
+          justify-between
+          items-center
         "
       >
 
-        <p className="text-gray-400 text-sm">
+        <span className="text-green-400 text-sm">
 
-          Resume Quality
+          ✓ ATS Friendly
 
-        </p>
+        </span>
 
-        <h2 className="text-white text-xl font-bold mt-2">
+        <button
+          className="
+            flex
+            items-center
+            gap-2
+            text-cyan-400
+            hover:text-cyan-300
+            transition
+          "
+        >
 
-          {level}
+          Analyze
 
-        </h2>
+          <ArrowRight size={16} />
+
+        </button>
 
       </div>
 
-      {/* Button */}
-
-      <button
-        className="
-          w-full
-          mt-6
-          py-3
-          rounded-2xl
-          bg-gradient-to-r
-          from-cyan-500
-          to-blue-600
-          text-white
-          font-semibold
-          flex
-          items-center
-          justify-center
-          gap-2
-          hover:scale-[1.02]
-          transition-all
-        "
-      >
-
-        Analyze Resume
-
-        <ArrowRight size={18} />
-
-      </button>
-
-    </div>
+    </DashboardCard>
 
   );
 
