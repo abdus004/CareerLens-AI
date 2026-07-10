@@ -1,5 +1,9 @@
 import { useState } from "react";
 import InputField from "../InputField";
+import {
+  getCurrentUser,
+  updateCurrentUser,
+} from "../../utils/usersStorage";
 
 export default function BasicInfo({ onNext, onBack }) {
   const [name, setName] = useState("");
@@ -10,8 +14,52 @@ export default function BasicInfo({ onNext, onBack }) {
   const [gender, setGender] = useState("");
   const [error, setError] = useState("");
 
-  const handleNext = () => {
+const handleNext = () => {
+
+  if (!name.trim()) {
+    setError("Please enter your full name.");
+    return;
+  }
+
+  if (!age.trim()) {
+    setError("Please enter your age.");
+    return;
+  }
+
+  if (!gender) {
+    setError("Please select your gender.");
+    return;
+  }
+
+  const currentUser = getCurrentUser();
+
+  if (!currentUser) {
+    setError("Please login again.");
+    return;
+  }
+
+  updateCurrentUser({
+
+    name: name.trim(),
+
+    profile: {
+
+      age,
+
+      gender,
+
+      phone,
+
+      linkedin,
+
+      github,
+
+    },
+
+  });
+
   onNext();
+
 };
 
   return (
@@ -22,26 +70,28 @@ export default function BasicInfo({ onNext, onBack }) {
       <div className="grid md:grid-cols-2 gap-6">
 
         <InputField
-          label="Full Name *"
-          type="text"
-          placeholder="Enter your full name"
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            setError("");
-          }}
-        />
+  label="Full Name *"
+  type="text"
+  placeholder="Enter your full name"
+  value={name}
+  error={error}
+  onChange={(e) => {
+    setName(e.target.value);
+    setError("");
+  }}
+/>
 
         <InputField
-          label="Age *"
-          type="number"
-          placeholder="Enter your age"
-          value={age}
-          onChange={(e) => {
-            setAge(e.target.value);
-            setError("");
-          }}
-        />
+  label="Age *"
+  type="number"
+  placeholder="Enter your age"
+  value={age}
+  error={error}
+  onChange={(e) => {
+    setAge(e.target.value);
+    setError("");
+  }}
+/>
 
       </div>
 
@@ -92,20 +142,26 @@ export default function BasicInfo({ onNext, onBack }) {
       <div className="grid md:grid-cols-2 gap-6 mt-8">
 
         <InputField
-          label="Phone Number (Optional)"
-          type="tel"
-          placeholder="Enter phone number"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-        />
+  label="Phone Number (Optional)"
+  type="tel"
+  placeholder="Enter phone number"
+  value={phone}
+  onChange={(e) => {
+    setPhone(e.target.value);
+    setError("");
+  }}
+/>
 
         <InputField
-          label="LinkedIn Profile (Optional)"
-          type="url"
-          placeholder="https://linkedin.com/in/..."
-          value={linkedin}
-          onChange={(e) => setLinkedin(e.target.value)}
-        />
+  label="LinkedIn Profile (Optional)"
+  type="url"
+  placeholder="https://linkedin.com/in/..."
+  value={linkedin}
+  onChange={(e) => {
+    setLinkedin(e.target.value);
+    setError("");
+  }}
+/>
 
       </div>
 
@@ -114,12 +170,15 @@ export default function BasicInfo({ onNext, onBack }) {
       <div className="grid md:grid-cols-2 gap-6 mt-6">
 
         <InputField
-          label="GitHub Profile (Optional)"
-          type="url"
-          placeholder="https://github.com/username"
-          value={github}
-          onChange={(e) => setGithub(e.target.value)}
-        />
+  label="GitHub Profile (Optional)"
+  type="url"
+  placeholder="https://github.com/username"
+  value={github}
+  onChange={(e) => {
+    setGithub(e.target.value);
+    setError("");
+  }}
+/>
 
       </div>
 
@@ -127,22 +186,28 @@ export default function BasicInfo({ onNext, onBack }) {
 
       {error && (
 
-        <div
-          className="
-            mt-8
-            rounded-2xl
-            border
-            border-red-500/30
-            bg-red-500/10
-            px-5
-            py-4
-            text-red-300
-          "
-        >
-          {error}
-        </div>
+  <div
+    className="
+      mt-8
+      rounded-2xl
+      border
+      border-red-500/30
+      bg-red-500/10
+      px-5
+      py-4
+      text-red-300
+      flex
+      items-center
+      gap-3
+    "
+  >
+    <span className="text-lg">⚠️</span>
 
-      )}
+    <span>{error}</span>
+
+  </div>
+
+)}
 
       {/* Buttons */}
 

@@ -24,16 +24,94 @@ export default function Signup() {
   };
 
   const handleSignup = () => {
+  clearErrors();
 
-  const user = {
-    name,
-    email,
-    password,
-  };
+  let valid = true;
+
+  if (!name.trim()) {
+    setNameError("Full name is required.");
+    valid = false;
+  }
+
+  if (!email.trim()) {
+    setEmailError("Email is required.");
+    valid = false;
+  }
+
+  if (!password) {
+    setPasswordError("Password is required.");
+    valid = false;
+  }
+
+  if (!confirmPassword) {
+    setConfirmPasswordError("Please confirm your password.");
+    valid = false;
+  }
+
+  if (password && confirmPassword && password !== confirmPassword) {
+    setConfirmPasswordError("Passwords do not match.");
+    valid = false;
+  }
+
+  if (!valid) return;
+
+  // Get existing users
+  const users = JSON.parse(localStorage.getItem("users")) || [];
+
+  // Check if email already exists
+  const existingUser = users.find(
+    (user) => user.email.toLowerCase() === email.toLowerCase()
+  );
+
+  if (existingUser) {
+    setEmailError("An account with this email already exists.");
+    return;
+  }
+
+  // Create new user
+  const newUser = {
+  id: Date.now(),
+  name: name.trim(),
+  email: email.trim().toLowerCase(),
+  password,
+
+  profile: {
+    age: "",
+    gender: "",
+    phone: "",
+    linkedin: "",
+    github: "",
+
+    college: "",
+    department: "",
+    degree: "",
+    year: "",
+    cgpa: "",
+
+    careerGoal: "",
+    interests: [],
+    skills: [],
+
+    resume: null,
+
+    resumeScore: 0,
+    careerMatch: [],
+    profileStrength: 0,
+  },
+};
+
+  // Save all users
+  users.push(newUser);
 
   localStorage.setItem(
-    "user",
-    JSON.stringify(user)
+    "users",
+    JSON.stringify(users)
+  );
+
+  // Save current logged in user
+  localStorage.setItem(
+    "currentUser",
+    JSON.stringify(newUser)
   );
 
   navigate("/profile-setup");

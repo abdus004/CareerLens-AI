@@ -1,3 +1,4 @@
+import { logoutUser } from "../../utils/usersStorage";
 import {
   Home,
   Brain,
@@ -15,47 +16,58 @@ import {
   Menu,
 } from "lucide-react";
 
+import { useNavigate, useLocation } from "react-router-dom";
+
 const menuItems = [
   {
     icon: Home,
     title: "Dashboard",
-    active: true,
+    path: "/dashboard",
   },
   {
     icon: Brain,
     title: "Career Intelligence",
+    path: "/career-intelligence",
   },
   {
     icon: BarChart3,
     title: "Skill Analysis",
+    path: "/skill-analysis",
   },
   {
     icon: Route,
     title: "Learning Path",
+    path: "/learning-path",
   },
   {
     icon: FileText,
     title: "Resume Analyzer",
+    path: "/resume-analyzer",
   },
   {
     icon: Mic,
     title: "Mock Interview",
+    path: "/mock-interview",
   },
   {
     icon: Briefcase,
-    title: "Job Recommendations",
+    title: "Opportunities",
+    path: "/opportunities",
   },
   {
     icon: ClipboardList,
     title: "Assessments",
+    path: "/assessments",
   },
   {
     icon: Award,
     title: "Certificates",
+    path: "/certificates",
   },
   {
     icon: FolderOpen,
     title: "Portfolio",
+    path: "/portfolio",
   },
 ];
 
@@ -63,6 +75,13 @@ export default function Sidebar({
   collapsed,
   setCollapsed,
 }) {
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  const handleLogout = () => {
+  logoutUser();
+  navigate("/login");
+};
   return (
     <aside
       className={`
@@ -167,35 +186,38 @@ export default function Sidebar({
 
           {menuItems.map((item) => {
 
-            const Icon = item.icon;
+  const Icon = item.icon;
 
-            return (
+  const isActive = location.pathname === item.path;
 
-              <button
-                key={item.title}
-                className={`
-                  w-full
-                  flex
-                  items-center
-                  ${
-                    collapsed
-                      ? "justify-center"
-                      : "justify-start"
-                  }
-                  gap-4
-                  px-4
-                  py-3
-                  rounded-2xl
-                  transition-all
-                  duration-300
+  return (
 
-                  ${
-                    item.active
-                      ? "bg-gradient-to-r from-violet-600 via-fuchsia-600 to-cyan-500 text-white shadow-lg"
-                      : "text-gray-400 hover:bg-white/5 hover:text-white"
-                  }
-                `}
-              >
+    <button
+      key={item.title}
+      onClick={() => navigate(item.path)}
+      className={`
+        w-full
+        flex
+        items-center
+        ${
+          collapsed
+            ? "justify-center"
+            : "justify-start"
+        }
+        gap-4
+        px-4
+        py-3
+        rounded-2xl
+        transition-all
+        duration-300
+
+        ${
+          isActive
+            ? "bg-gradient-to-r from-violet-600 via-fuchsia-600 to-cyan-500 text-white shadow-lg"
+            : "text-gray-400 hover:bg-white/5 hover:text-white"
+        }
+      `}
+    >
 
                 <Icon
                   size={20}
@@ -227,121 +249,96 @@ export default function Sidebar({
           {/* Settings */}
 
           <button
-            className={`
-              w-full
-              flex
-              items-center
-              ${
-                collapsed
-                  ? "justify-center"
-                  : "justify-start"
-              }
-              gap-4
-              px-4
-              py-3
-              rounded-2xl
-              text-gray-400
-              hover:bg-white/5
-              hover:text-white
-              transition-all
-            `}
-          >
+  onClick={() => navigate("/settings")}
+  className={`
+    w-full
+    flex
+    items-center
+    ${
+      collapsed
+        ? "justify-center"
+        : "justify-start"
+    }
+    gap-4
+    px-4
+    py-3
+    rounded-2xl
+    ${
+      location.pathname === "/settings"
+        ? "bg-gradient-to-r from-violet-600 via-fuchsia-600 to-cyan-500 text-white"
+        : "text-gray-400 hover:bg-white/5 hover:text-white"
+    }
+    transition-all
+  `}
+>
+  <Settings size={20} />
 
-            <Settings
-              size={20}
-              className="flex-shrink-0"
-            />
-
-            {!collapsed && (
-
-              <span className="font-medium">
-
-                Settings
-
-              </span>
-
-            )}
-
-          </button>
+  {!collapsed && (
+    <span className="font-medium">
+      Settings
+    </span>
+  )}
+</button>
 
           {/* Help */}
 
           <button
-            className={`
-              w-full
-              flex
-              items-center
-              ${
-                collapsed
-                  ? "justify-center"
-                  : "justify-start"
-              }
-              gap-4
-              px-4
-              py-3
-              rounded-2xl
-              text-gray-400
-              hover:bg-white/5
-              hover:text-white
-              transition-all
-            `}
-          >
+  onClick={() => navigate("/help-support")}
+  className={`
+    w-full
+    flex
+    items-center
+    ${
+      collapsed
+        ? "justify-center"
+        : "justify-start"
+    }
+    gap-4
+    px-4
+    py-3
+    rounded-2xl
+    ${
+      location.pathname === "/help-support"
+        ? "bg-gradient-to-r from-violet-600 via-fuchsia-600 to-cyan-500 text-white"
+        : "text-gray-400 hover:bg-white/5 hover:text-white"
+    }
+    transition-all
+  `}
+>
+  <HelpCircle size={20} />
 
-            <HelpCircle
-              size={20}
-              className="flex-shrink-0"
-            />
-
-            {!collapsed && (
-
-              <span className="font-medium">
-
-                Help & Support
-
-              </span>
-
-            )}
-
-          </button>
+  {!collapsed && (
+    <span className="font-medium">
+      Help & Support
+    </span>
+  )}
+</button>
 
           {/* Logout */}
 
           <button
-            className={`
-              w-full
-              flex
-              items-center
-              ${
-                collapsed
-                  ? "justify-center"
-                  : "justify-start"
-              }
-              gap-4
-              px-4
-              py-3
-              rounded-2xl
-              text-red-400
-              hover:bg-red-500/10
-              transition-all
-            `}
-          >
+  onClick={handleLogout}
+  className="
+    w-full
+    flex
+    items-center
+    gap-4
+    px-4
+    py-3
+    rounded-2xl
+    text-red-400
+    hover:bg-red-500/10
+    transition-all
+  "
+>
+  <LogOut size={20} />
 
-            <LogOut
-              size={20}
-              className="flex-shrink-0"
-            />
-
-            {!collapsed && (
-
-              <span className="font-medium">
-
-                Logout
-
-              </span>
-
-            )}
-
-          </button>
+  {!collapsed && (
+    <span className="font-medium">
+      Logout
+    </span>
+  )}
+</button>
 
         </nav>
 
