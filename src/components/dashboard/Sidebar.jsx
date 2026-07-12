@@ -36,7 +36,7 @@ const menuItems = [
   },
   {
     icon: Route,
-    title: "Learning Path",
+    title: "Career Roadmap",
     path: "/learning-path",
   },
   {
@@ -66,7 +66,7 @@ const menuItems = [
   },
   {
     icon: FolderOpen,
-    title: "Portfolio",
+    title: "Progress",
     path: "/portfolio",
   },
 ];

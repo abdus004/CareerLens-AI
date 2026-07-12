@@ -11,6 +11,9 @@ import SkillAnalysis from "./pages/SkillAnalysis";
 import LearningPath from "./pages/LearningPath";
 import CareerOpportunities from "./pages/Opportunities";
 import Settings from "./pages/Settings";
+import MockInterview from "./pages/MockInterview";
+import Assessments from "./pages/Assessments";
+import Progress from "./pages/Portfolio";
 
 export default function App() {
   return (
@@ -55,6 +58,21 @@ export default function App() {
 <Route
   path="/settings"
   element={<Settings />}
+/>
+
+<Route
+  path="/mock-interview"
+  element={<MockInterview />}
+/>
+
+<Route
+  path="/assessments"
+  element={<Assessments />}
+/>
+
+<Route
+  path="/portfolio"
+  element={<Progress />}
 />
 
     </Routes>
