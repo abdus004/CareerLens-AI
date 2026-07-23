@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import api from "../services/api";
+import IndustryDemandChart from "../components/dashboard/IndustryDemandChart";
 
 import {
   Brain,
@@ -8,7 +9,6 @@ import {
   Award,
   Target,
 } from "lucide-react";
-
 
 export default function CareerIntelligence() {
 
@@ -30,6 +30,8 @@ export default function CareerIntelligence() {
           `/career/${storedUser.email}`
         );
 
+        console.log("Career API Response:", response.data);
+
         setCareer(response.data);
 
       } catch (err) {
@@ -43,6 +45,7 @@ export default function CareerIntelligence() {
   }, []);
 
   return (
+
     <DashboardLayout>
 
       {/* Page Header */}
@@ -50,21 +53,16 @@ export default function CareerIntelligence() {
       <div className="mb-8">
 
         <h1 className="text-4xl font-bold text-white">
-
           Career Intelligence
-
         </h1>
 
         <p className="text-gray-400 mt-2">
-
-          Discover the best career paths based on your profile,
-          skills and resume.
-
+          Discover the best career paths based on your profile, skills and resume.
         </p>
 
       </div>
 
-      {/* Career Match Card */}
+      {/* Career Matches */}
 
       <div
         className="
@@ -78,12 +76,13 @@ export default function CareerIntelligence() {
 
         <div className="flex items-center gap-3 mb-8">
 
-          <Brain className="text-violet-400" size={30} />
+          <Brain
+            className="text-violet-400"
+            size={30}
+          />
 
           <h2 className="text-2xl font-bold text-white">
-
-            Career Matches
-
+            Career Compatibility
           </h2>
 
         </div>
@@ -97,15 +96,11 @@ export default function CareerIntelligence() {
               <div className="flex justify-between mb-2">
 
                 <span className="text-white font-medium">
-
                   {role.role}
-
                 </span>
 
                 <span className="text-cyan-400 font-bold">
-
                   {role.score}%
-
                 </span>
 
               </div>
@@ -124,7 +119,7 @@ export default function CareerIntelligence() {
                   style={{
                     width: `${role.score}%`,
                   }}
-                ></div>
+                />
 
               </div>
 
@@ -136,9 +131,11 @@ export default function CareerIntelligence() {
 
       </div>
 
-      {/* Next Section Starts Here */}
+      {/* Profile Strengths + Industry Demand */}
 
-      <div className="grid lg:grid-cols-2 gap-6 mt-8">        {/* Profile Strengths */}
+      <div className="grid lg:grid-cols-2 gap-6 mt-8">
+
+        {/* Profile Strengths */}
 
         <div
           className="
@@ -158,24 +155,17 @@ export default function CareerIntelligence() {
             />
 
             <h2 className="text-2xl font-bold text-white">
-
               Profile Strengths
-
             </h2>
 
           </div>
 
           <div className="flex flex-wrap gap-4">
 
-            {[
-              "Python",
-              "Machine Learning",
-              "Problem Solving",
-              "Communication",
-            ].map((skill) => (
+            {career?.profile_strengths?.map((strength, index) => (
 
               <span
-                key={skill}
+                key={index}
                 className="
                   px-5
                   py-3
@@ -187,7 +177,7 @@ export default function CareerIntelligence() {
                   font-medium
                 "
               >
-                ✓ {skill}
+                ✓ {strength}
               </span>
 
             ))}
@@ -196,7 +186,7 @@ export default function CareerIntelligence() {
 
         </div>
 
-        {/* Skills To Improve */}
+        {/* Industry Demand */}
 
         <div
           className="
@@ -208,274 +198,167 @@ export default function CareerIntelligence() {
           "
         >
 
-          <div className="flex items-center gap-3 mb-6">
-
-            <Target
-              className="text-orange-400"
-              size={28}
-            />
+          <div className="flex items-center justify-between mb-6">
 
             <h2 className="text-2xl font-bold text-white">
-
-              Skills To Improve
-
+              Industry Demand
             </h2>
 
-          </div>
-
-          <div className="flex flex-wrap gap-4">
-
-            {[
-              "SQL",
-              "React",
-              "Docker",
-              "System Design",
-            ].map((skill) => (
-
-              <span
-                key={skill}
-                className="
-                  px-5
-                  py-3
-                  rounded-xl
-                  bg-orange-500/10
-                  border
-                  border-orange-500/30
-                  text-orange-300
-                  font-medium
-                "
-              >
-                {skill}
-              </span>
-
-            ))}
+            <span
+              className="
+                px-4
+                py-1
+                rounded-full
+                bg-green-500/20
+                text-green-400
+                text-sm
+                font-semibold
+              "
+            >
+              +{career?.growth_percentage || 0}% Growth
+            </span>
 
           </div>
 
-        </div>
-
-      </div>
-
-      {/* Career Insights */}
-
-      <div
-        className="
-          mt-8
-          rounded-3xl
-          border
-          border-white/10
-          bg-white/5
-          p-8
-        "
-      >
-
-        <div className="flex items-center gap-3 mb-8">
-
-          <TrendingUp
-            className="text-cyan-400"
-            size={30}
+          <IndustryDemandChart
+            data={career?.industry_graph || []}
+            growth={career?.growth_percentage || 0}
           />
 
-          <h2 className="text-2xl font-bold text-white">
-
-            Career Insights
-
-          </h2>
-
-        </div>
-
-        <div className="grid md:grid-cols-4 gap-6">
-
-          <div className="rounded-2xl bg-white/5 p-6 border border-white/10">
-
-            <p className="text-gray-400 text-sm">
-
-              Top Career
-
-            </p>
-
-            <h3 className="text-xl text-white font-bold mt-2">
-
-              AI Engineer
-
-            </h3>
-
-          </div>
-
-          <div className="rounded-2xl bg-white/5 p-6 border border-white/10">
-
-            <p className="text-gray-400 text-sm">
-
-              Average Salary
-
-            </p>
-
-            <h3 className="text-xl text-green-400 font-bold mt-2">
-
-              ₹8–18 LPA
-
-            </h3>
-
-          </div>
-
-          <div className="rounded-2xl bg-white/5 p-6 border border-white/10">
-
-            <p className="text-gray-400 text-sm">
-
-              Industry Demand
-
-            </p>
-
-            <h3 className="text-xl text-cyan-400 font-bold mt-2">
-
-              Very High
-
-            </h3>
-
-          </div>
-
-          <div className="rounded-2xl bg-white/5 p-6 border border-white/10">
-
-            <p className="text-gray-400 text-sm">
-
-              Future Growth
-
-            </p>
-
-            <h3 className="text-xl text-violet-400 font-bold mt-2">
-
-              Excellent
-
-            </h3>
-
-          </div>
-
-        </div>
-
-      </div>      {/* Why These Careers + Next Steps */}
-
-      <div className="grid lg:grid-cols-2 gap-6 mt-8">
-
-        {/* Why These Careers */}
-
-        <div
-          className="
-            rounded-3xl
-            border
-            border-white/10
-            bg-white/5
-            p-8
-          "
-        >
-
-          <h2 className="text-2xl font-bold text-white mb-6">
-
-            Why These Careers?
-
-          </h2>
-
-          <p className="text-gray-400 leading-8">
-
-            Based on your education, technical skills,
-            career interests and resume, CareerLens AI
-            predicts these careers have the highest
-            potential for your profile.
-
-          </p>
-
-          <ul className="mt-6 space-y-4 text-gray-300">
-
-            <li>✅ Strong programming foundation</li>
-
-            <li>✅ High AI & Data Science relevance</li>
-
-            <li>✅ Excellent future job demand</li>
-
-            <li>✅ Good salary growth opportunities</li>
-
-          </ul>
-
-        </div>
-
-        {/* Recommended Next Steps */}
-
-        <div
-          className="
-            rounded-3xl
-            border
-            border-white/10
-            bg-white/5
-            p-8
-          "
-        >
-
-          <h2 className="text-2xl font-bold text-white mb-6">
-
-            Recommended Next Steps
-
-          </h2>
-
-          <div className="space-y-4">
-
-            {[
-              "Master SQL",
-              "Build 2 AI Projects",
-              "Learn React",
-              "Practice DSA Daily",
-              "Improve Resume ATS Score",
-              "Complete Mock Interviews",
-            ].map((step) => (
-
-              <div
-                key={step}
-                className="
-                  flex
-                  items-center
-                  gap-4
-                  rounded-xl
-                  border
-                  border-white/10
-                  bg-white/5
-                  px-5
-                  py-4
-                "
-              >
-
-                <div
-                  className="
-                    w-8
-                    h-8
-                    rounded-full
-                    bg-gradient-to-r
-                    from-violet-500
-                    via-fuchsia-500
-                    to-cyan-400
-                    flex
-                    items-center
-                    justify-center
-                    text-white
-                    font-bold
-                  "
-                >
-                  ✓
-                </div>
-
-                <span className="text-gray-200">
-
-                  {step}
-
-                </span>
-
-              </div>
-
-            ))}
-
-          </div>
-
         </div>
 
       </div>
 
-    </DashboardLayout>
-  );
+{/* Career Insights */}
+
+<div
+  className="
+    mt-8
+    rounded-3xl
+    border
+    border-white/10
+    bg-white/5
+    p-8
+  "
+>
+
+  <div className="flex items-center gap-3 mb-8">
+
+    <TrendingUp
+      className="text-cyan-400"
+      size={30}
+    />
+
+    <h2 className="text-2xl font-bold text-white">
+      Career Insights
+    </h2>
+
+  </div>
+
+  <div className="grid md:grid-cols-4 gap-6">
+
+    {/* Top Career */}
+
+    <div className="rounded-2xl bg-white/5 p-6 border border-white/10">
+
+      <p className="text-gray-400 text-sm">
+        Top Career
+      </p>
+
+      <h3 className="text-xl text-white font-bold mt-2">
+        {career?.recommended_role || "-"}
+      </h3>
+
+    </div>
+
+    {/* Average Salary */}
+
+    <div className="rounded-2xl bg-white/5 p-6 border border-white/10">
+
+      <p className="text-gray-400 text-sm">
+        Average Salary
+      </p>
+
+      <h3 className="text-xl text-green-400 font-bold mt-2">
+        {career?.industry_insights?.average_salary || "-"}
+      </h3>
+
+    </div>
+
+    {/* Job Opportunities */}
+
+    <div className="rounded-2xl bg-white/5 p-6 border border-white/10">
+
+      <p className="text-gray-400 text-sm">
+        Job Opportunities
+      </p>
+
+      <h3 className="text-xl text-cyan-400 font-bold mt-2">
+        {career?.job_opportunities || "-"}
+      </h3>
+
+    </div>
+
+    {/* Future Growth */}
+
+    <div className="rounded-2xl bg-white/5 p-6 border border-white/10">
+
+      <p className="text-gray-400 text-sm">
+        Future Growth
+      </p>
+
+      <h3 className="text-xl text-violet-400 font-bold mt-2">
+        {career?.growth_percentage || 0}%
+      </h3>
+
+    </div>
+
+  </div>
+
+</div>
+
+{/* Why AI Chose This Career */}
+
+<div
+  className="
+    mt-8
+    rounded-3xl
+    border
+    border-white/10
+    bg-white/5
+    p-8
+  "
+>
+
+  <div className="flex items-center gap-3 mb-6">
+
+    <Target
+      className="text-cyan-400"
+      size={28}
+    />
+
+    <h2 className="text-2xl font-bold text-white">
+
+      Why AI Chose This Career
+
+    </h2>
+
+  </div>
+
+  <p
+    className="
+      text-gray-300
+      leading-8
+      whitespace-pre-line
+    "
+  >
+
+    {career?.reason || "Loading AI analysis..."}
+
+  </p>
+
+</div>
+
+</DashboardLayout>
+);
 }

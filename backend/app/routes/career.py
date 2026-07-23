@@ -13,7 +13,6 @@ router = APIRouter(
 def generate_career_analysis(email: str):
     """
     Generates career analysis and saves it into career_analysis table.
-    This function can be reused from other routes.
     """
 
     # Fetch profile
@@ -42,9 +41,23 @@ def generate_career_analysis(email: str):
             except Exception:
                 pass
 
-    # Generate AI response
+    # Generate Prompt
     prompt = career_recommendation_prompt(profile)
+
+    print("\n" + "=" * 100)
+    print("CAREER PROMPT SENT TO GEMINI")
+    print("=" * 100)
+    print(prompt)
+    print("=" * 100)
+
+    # Generate AI response
     result = generate_json(prompt)
+
+    print("\n" + "=" * 100)
+    print("GEMINI RESPONSE")
+    print("=" * 100)
+    print(result)
+    print("=" * 100)
 
     # Save into career_analysis table
     existing = (

@@ -20,4 +20,5 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 print("✅ Connected to Supabase")
 print("SUPABASE URL:", SUPABASE_URL)
-print("KEY STARTS WITH:", SUPABASE_KEY[:20])
+print("KEY STARTS WITH:", SUPABASE_KEY[:30])
+print("KEY LENGTH:", len(SUPABASE_KEY))

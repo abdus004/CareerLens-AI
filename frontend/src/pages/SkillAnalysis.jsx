@@ -29,6 +29,9 @@ const [isEditing, setIsEditing] = useState(false);
 const [buttonText, setButtonText] = useState("Edit");
 const [isSaving, setIsSaving] = useState(false);
 const [hasChanges, setHasChanges] = useState(false);
+const [reanalyzing, setReanalyzing] = useState(false);
+const [reanalyzeText, setReanalyzeText] = useState("✨ Reanalyze");
+
 
 const fetchSkills = async () => {
   try {
@@ -81,16 +84,31 @@ const reanalyzeSkills = async () => {
 
     if (!user) return;
 
+    setReanalyzing(true);
+    setReanalyzeText("⏳ Reanalyzing...");
+
     await axios.post(
       `http://127.0.0.1:8000/skills/analyze/${user.email}`
     );
 
     await fetchSkills();
 
-    alert("Skill analysis updated successfully!");
+    setReanalyzeText("✅ Analysis Updated");
+
+    setTimeout(() => {
+      setReanalyzeText("✨ Reanalyze");
+      setReanalyzing(false);
+    }, 2000);
+
   } catch (error) {
-    console.error("Reanalysis failed:", error);
-    alert("Failed to reanalyze skills.");
+    console.error(error);
+
+    setReanalyzeText("❌ Failed");
+
+    setTimeout(() => {
+      setReanalyzeText("✨ Reanalyze");
+      setReanalyzing(false);
+    }, 2000);
   }
 };
 const saveSkill = async () => {
@@ -189,11 +207,23 @@ console.log(analysis);
     <div className="flex items-center gap-3">
 
   <button
-    onClick={reanalyzeSkills}
-    className="px-5 py-2 rounded-xl bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 transition-all duration-300"
-  >
-    ✨ Reanalyze
-  </button>
+  onClick={reanalyzeSkills}
+  disabled={reanalyzing}
+  className={`
+    px-5
+    py-2
+    rounded-xl
+    transition-all
+    duration-300
+    ${
+      reanalyzing
+        ? "bg-purple-600 text-white cursor-not-allowed"
+        : "bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 hover:scale-105"
+    }
+  `}
+>
+  {reanalyzeText}
+</button>
 
   <button
     onClick={saveSkill}
@@ -309,10 +339,23 @@ console.log(analysis);
 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
 
   <RadarSkillChart
-  technicalSkills={skills.map((skill) => ({
-    skill: skill.name,
-    score: skill.level,
-  }))}
+  technicalSkills={
+    analysis?.important_skills
+      ?.map((importantSkill) => {
+        const matchedSkill = skills.find(
+          (skill) =>
+            skill.name.toLowerCase() === importantSkill.toLowerCase()
+        );
+
+        return matchedSkill
+          ? {
+              skill: matchedSkill.name,
+              score: matchedSkill.level,
+            }
+          : null;
+      })
+      .filter(Boolean) || []
+  }
 />
 
   <WeakSkillsCard

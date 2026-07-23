@@ -169,10 +169,13 @@ def analyze_skills(email: str):
         raise
 
     except Exception as e:
+
+        import traceback
+        traceback.print_exc()   # <-- prints the real error in the terminal
         raise HTTPException(
             status_code=500,
             detail=str(e)
-        )
+    )
 
 
 @router.get("/{email}")
