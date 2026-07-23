@@ -1,108 +1,76 @@
 import { Code2, ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import DashboardCard from "../common/DashboardCard";
 
-const skills = [
-  {
-    name: "Python",
-    progress: 95,
-    level: "Expert",
-  },
-  {
-    name: "Machine Learning",
-    progress: 82,
-    level: "Advanced",
-  },
-  {
-    name: "SQL",
-    progress: 74,
-    level: "Intermediate",
-  },
-  {
-    name: "React",
-    progress: 60,
-    level: "Intermediate",
-  },
-  {
-    name: "Git & GitHub",
-    progress: 45,
-    level: "Beginner",
-  },
-];
+export default function SkillProgress({ profile }) {
+  const navigate = useNavigate();
 
-export default function SkillProgress() {
+  const prioritySkills = [
+    "Python",
+    "React",
+    "FastAPI",
+    "JavaScript",
+    "SQL",
+    "PostgreSQL",
+    "Node.js",
+    "Docker",
+    "Git",
+    "GitHub",
+    "Java",
+    "C++",
+    "C",
+  ];
+
+  const allSkills = Array.isArray(profile?.skills) ? profile.skills : [];
+
+  let skills = prioritySkills.filter((skill) =>
+    allSkills.includes(skill)
+  );
+
+  if (skills.length < 4) {
+    const remaining = allSkills.filter(
+      (skill) => !skills.includes(skill)
+    );
+
+    skills = [...skills, ...remaining];
+  }
+
+  skills = skills.slice(0, 10);
 
   return (
-
     <DashboardCard
-      title="Skill Progress"
-      subtitle="Your current skill levels"
+      title="Detected Skills"
+      subtitle="Skills extracted from your resume"
       icon={<Code2 size={22} />}
     >
-
-      <div className="space-y-5">
-
-        {skills.map((skill) => (
-
-          <div key={skill.name}>
-
-            <div className="flex justify-between mb-2">
-
-              <div>
-
-                <h3 className="text-white font-medium">
-
-                  {skill.name}
-
-                </h3>
-
-                <p className="text-xs text-gray-500">
-
-                  {skill.level}
-
-                </p>
-
-              </div>
-
-              <span className="text-white font-semibold">
-
-                {skill.progress}%
-
-              </span>
-
-            </div>
-
+      {skills.length === 0 ? (
+        <p className="text-gray-400">
+          No skills found. Upload a resume.
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          {skills.map((skill) => (
             <div
+              key={skill}
               className="
-                h-2.5
-                rounded-full
-                bg-white/10
-                overflow-hidden
+                flex
+                items-center
+                justify-center
+                rounded-xl
+                border
+                border-cyan-500/20
+                bg-cyan-500/10
+                py-3
+                px-4
+                text-white
+                font-medium
               "
             >
-
-              <div
-                className="
-                  h-full
-                  rounded-full
-                  bg-gradient-to-r
-                  from-green-400
-                  via-cyan-400
-                  to-blue-500
-                  transition-all
-                  duration-700
-                "
-                style={{
-                  width: `${skill.progress}%`,
-                }}
-              />
-
+              ✓ {skill}
             </div>
-
-          </div>
-
-        ))}
-
-      </div>
+          ))}
+        </div>
+      )}
 
       <div
         className="
@@ -114,8 +82,8 @@ export default function SkillProgress() {
           justify-end
         "
       >
-
         <button
+          onClick={() => navigate("/skill-analysis")}
           className="
             flex
             items-center
@@ -125,17 +93,10 @@ export default function SkillProgress() {
             transition-all
           "
         >
-
           View All Skills
-
           <ArrowRight size={16} />
-
         </button>
-
       </div>
-
     </DashboardCard>
-
   );
-
 }

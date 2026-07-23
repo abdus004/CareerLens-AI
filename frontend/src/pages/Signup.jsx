@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import InputField from "../components/InputField";
 
+const API_URL = "http://127.0.0.1:8000";
+
 export default function Signup() {
   const navigate = useNavigate();
 
@@ -23,7 +25,7 @@ export default function Signup() {
     setConfirmPasswordError("");
   };
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
   clearErrors();
 
   let valid = true;
@@ -55,66 +57,62 @@ export default function Signup() {
 
   if (!valid) return;
 
-  // Get existing users
-  const users = JSON.parse(localStorage.getItem("users")) || [];
+  try {
+  const response = await fetch(`${API_URL}/auth/signup`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      full_name: name.trim(),
+      email: email.trim().toLowerCase(),
+      password: password,
+    }),
+  });
 
-  // Check if email already exists
-  const existingUser = users.find(
-    (user) => user.email.toLowerCase() === email.toLowerCase()
-  );
+  const data = await response.json();
+   
+  if (!response.ok) {
+    if (!response.ok) {
+  console.log(data);
 
-  if (existingUser) {
-    setEmailError("An account with this email already exists.");
+  if (typeof data.detail === "string") {
+    if (data.detail.toLowerCase().includes("already")) {
+      setEmailError("An account with this email already exists.");
+      return;
+    }
+
+    alert(data.detail);
     return;
   }
 
-  // Create new user
-  const newUser = {
-  id: Date.now(),
-  name: name.trim(),
-  email: email.trim().toLowerCase(),
-  password,
+  alert(JSON.stringify(data.detail));
+  return;
+} {
+      setEmailError("An account with this email already exists.");
+      return;
+    }
 
-  profile: {
-    age: "",
-    gender: "",
-    phone: "",
-    linkedin: "",
-    github: "",
+    alert(data.detail || "Signup failed");
+    return;
+  }
 
-    college: "",
-    department: "",
-    degree: "",
-    year: "",
-    cgpa: "",
+  alert("Account created successfully!");
 
-    careerGoal: "",
-    interests: [],
-    skills: [],
+localStorage.setItem(
+  "user",
+  JSON.stringify({
+    full_name: name.trim(),
+    email: email.trim().toLowerCase(),
+  })
+);
 
-    resume: null,
+navigate("/profile-setup");
 
-    resumeScore: 0,
-    careerMatch: [],
-    profileStrength: 0,
-  },
-};
-
-  // Save all users
-  users.push(newUser);
-
-  localStorage.setItem(
-    "users",
-    JSON.stringify(users)
-  );
-
-  // Save current logged in user
-  localStorage.setItem(
-    "currentUser",
-    JSON.stringify(newUser)
-  );
-
-  navigate("/profile-setup");
+} catch (error) {
+  console.error(error);
+  alert("Unable to connect to backend.");
+}
 };
 
   return (

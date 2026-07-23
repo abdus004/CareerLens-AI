@@ -1,9 +1,6 @@
 import { useState } from "react";
 import InputField from "../InputField";
-import {
-  getCurrentUser,
-  updateCurrentUser,
-} from "../../utils/usersStorage";
+import { useProfile } from "../../context/ProfileContext";
 
 export default function BasicInfo({ onNext, onBack }) {
   const [name, setName] = useState("");
@@ -13,6 +10,10 @@ export default function BasicInfo({ onNext, onBack }) {
   const [github, setGithub] = useState("");
   const [gender, setGender] = useState("");
   const [error, setError] = useState("");
+  const { updateProfile } = useProfile();
+  const storedUser =
+  JSON.parse(localStorage.getItem("user")) ||
+  JSON.parse(sessionStorage.getItem("user"));
 
 const handleNext = () => {
 
@@ -31,32 +32,15 @@ const handleNext = () => {
     return;
   }
 
-  const currentUser = getCurrentUser();
-
-  if (!currentUser) {
-    setError("Please login again.");
-    return;
-  }
-
-  updateCurrentUser({
-
-    name: name.trim(),
-
-    profile: {
-
-      age,
-
-      gender,
-
-      phone,
-
-      linkedin,
-
-      github,
-
-    },
-
-  });
+  updateProfile({
+  full_name: name.trim(),
+  email: storedUser?.email,
+  age,
+  gender,
+  phone,
+  linkedin,
+  github,
+});;
 
   onNext();
 

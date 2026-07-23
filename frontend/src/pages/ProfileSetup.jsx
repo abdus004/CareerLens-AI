@@ -18,12 +18,12 @@ export default function ProfileSetup() {
   const [userType, setUserType] = useState("");
 
   const nextStep = () => {
-    if (step < totalSteps) {
-      setStep(step + 1);
-    } else {
-      navigate("/dashboard");
-    }
-  };
+  if (step < totalSteps) {
+    setStep((prev) => prev + 1);
+  } else {
+    navigate("/dashboard");
+  }
+};
 
   const previousStep = () => {
     if (step > 1) {

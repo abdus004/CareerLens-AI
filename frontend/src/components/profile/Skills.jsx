@@ -1,5 +1,6 @@
 import { useState } from "react";
 import InputField from "../InputField";
+import { useProfile } from "../../context/ProfileContext";
 
 export default function Skills({ onNext, onBack }) {
 
@@ -47,7 +48,7 @@ export default function Skills({ onNext, onBack }) {
   const [showOther, setShowOther] = useState(false);
   const [otherSkill, setOtherSkill] = useState("");
   const [error, setError] = useState("");
-
+  const { updateProfile } = useProfile();
   const toggleSkill = (skill) => {
 
     if (selectedSkills.includes(skill)) {
@@ -71,25 +72,28 @@ export default function Skills({ onNext, onBack }) {
 
   const handleNext = () => {
 
-    if (
-      selectedSkills.length === 0 &&
-      otherSkill.trim() === ""
-    ) {
+  if (
+    selectedSkills.length === 0 &&
+    otherSkill.trim() === ""
+  ) {
+    setError("Please select at least one skill.");
+    return;
+  }
 
-      setError(
-        "Please select at least one skill."
-      );
+  const skills = [...selectedSkills];
 
-      return;
+  if (otherSkill.trim()) {
+    skills.push(otherSkill.trim());
+  }
 
-    }
+  updateProfile({
+    skills,
+  });
 
-    setError("");
+  setError("");
 
-    onNext();
-
-  };
-
+  onNext();
+};
   return (
 
     <div>

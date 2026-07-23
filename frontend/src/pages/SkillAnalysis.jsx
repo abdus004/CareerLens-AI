@@ -4,6 +4,12 @@ import {
   TrendingUp,
   Code,
 } from "lucide-react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import RadarSkillChart from "../components/dashboard/RadarSkillChart";
+import WeakSkillsCard from "../components/dashboard/WeakSkillsCard";
+import RecommendedCoursesCard from "../components/dashboard/RecommendedCoursesCard";
+import LearningTimeCard from "../components/dashboard/LearningTimeCard";
 
 const skills = [
   { name: "Python", level: 92 },
@@ -13,7 +19,132 @@ const skills = [
   { name: "Git & GitHub", level: 84 },
 ];
 
+
 export default function SkillAnalysis() {
+  const [skills, setSkills] = useState([]);
+  const [analysis, setAnalysis] = useState(null);
+const [loading, setLoading] = useState(true);
+const [showAll, setShowAll] = useState(false);
+const [isEditing, setIsEditing] = useState(false);
+const [buttonText, setButtonText] = useState("Edit");
+const [isSaving, setIsSaving] = useState(false);
+const [hasChanges, setHasChanges] = useState(false);
+
+const fetchSkills = async () => {
+  try {
+    // Get logged in user
+    const user =
+      JSON.parse(localStorage.getItem("user")) ||
+      JSON.parse(sessionStorage.getItem("user"));
+
+    if (!user) {
+      console.log("User not found");
+      return;
+    }
+
+    // Fetch dashboard data
+    const response = await axios.get(
+      `http://127.0.0.1:8000/dashboard/${user.email}`
+    );
+
+    const profile = response.data.data;
+
+    const detectedSkills = profile.skills || [];
+    const skillLevels = profile.skill_levels || {};
+
+    // Convert to frontend format
+    const formattedSkills = detectedSkills.map((skill) => ({
+      name: skill,
+      level: skillLevels[skill] ?? 50,
+    }));
+
+    setSkills(formattedSkills);
+
+    // Fetch AI Skill Analysis
+const analysisResponse = await axios.get(
+  `http://127.0.0.1:8000/skills/${user.email}`
+);
+
+setAnalysis(analysisResponse.data);
+
+  } catch (error) {
+    console.error("Error fetching skills:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+const reanalyzeSkills = async () => {
+  try {
+    const user =
+      JSON.parse(localStorage.getItem("user")) ||
+      JSON.parse(sessionStorage.getItem("user"));
+
+    if (!user) return;
+
+    await axios.post(
+      `http://127.0.0.1:8000/skills/analyze/${user.email}`
+    );
+
+    await fetchSkills();
+
+    alert("Skill analysis updated successfully!");
+  } catch (error) {
+    console.error("Reanalysis failed:", error);
+    alert("Failed to reanalyze skills.");
+  }
+};
+const saveSkill = async () => {
+  if (!isEditing) {
+    setIsEditing(true);
+    setButtonText("Save Changes");
+    return;
+  }
+
+  try {
+    setIsSaving(true);
+    setButtonText("Saving...");
+
+    const user =
+      JSON.parse(localStorage.getItem("user")) ||
+      JSON.parse(sessionStorage.getItem("user"));
+
+    if (!user) return;
+
+    const skillLevels = {};
+
+    skills.forEach((skill) => {
+      skillLevels[skill.name] = skill.level;
+    });
+
+    await axios.put(
+      `http://127.0.0.1:8000/skills/${user.email}`,
+      {
+        skill_levels: skillLevels,
+      }
+    );
+    setHasChanges(false);
+    setButtonText("✓ Saved");
+
+    setTimeout(() => {
+  setButtonText("Edit");
+  setIsEditing(false);
+  setIsSaving(false);
+}, 500);
+
+  } catch (error) {
+    console.error(error);
+
+    setButtonText("Save Changes");
+
+    setIsSaving(false);
+  }
+};
+useEffect(() => {
+    fetchSkills();
+}, []);
+
+console.log(skills);
+console.log(analysis);
   return (
     <DashboardLayout>
 
@@ -35,430 +166,174 @@ export default function SkillAnalysis() {
         </p>
 
       </div>
+      {/* Skill Analysis Card */}
 
-      {/* Skill Progress */}
+<div
+  className="
+    rounded-3xl
+    border
+    border-white/10
+    bg-white/5
+    p-8
+  "
+>
 
-      <div
-        className="
-          rounded-3xl
-          border
-          border-white/10
-          bg-white/5
-          p-8
-        "
-      >
+  <div className="flex items-center justify-between mb-8">
 
-        <div className="flex items-center gap-3 mb-8">
+    <h2 className="text-2xl font-bold text-white">
 
-          <BarChart3
-            size={30}
-            className="text-cyan-400"
+      Skill Analysis
+
+    </h2>
+
+    <div className="flex items-center gap-3">
+
+  <button
+    onClick={reanalyzeSkills}
+    className="px-5 py-2 rounded-xl bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 transition-all duration-300"
+  >
+    ✨ Reanalyze
+  </button>
+
+  <button
+    onClick={saveSkill}
+    disabled={isSaving}
+    className={`
+        px-5
+        py-2
+        rounded-xl
+        font-semibold
+        transition-all
+        duration-300
+
+        ${
+            isEditing
+                ? "bg-cyan-500 text-white"
+                : "bg-cyan-500/20 text-cyan-300"
+        }
+
+        ${
+            isSaving
+                ? "opacity-70 cursor-not-allowed"
+                : "hover:scale-105"
+        }
+    `}
+  >
+    {buttonText}
+  </button>
+
+</div>
+
+  </div>
+
+  <div className="space-y-8">
+
+  {(showAll ? skills : skills.slice(0, 5)).map((skill) => (
+
+    <div
+      key={skill.name}
+      className="rounded-2xl bg-white/5 border border-white/10 p-5 hover:border-cyan-400/40 transition-all duration-300"
+    >
+
+      <div className="flex justify-between items-center mb-3">
+
+        <h3 className="text-white font-semibold text-lg">
+          {skill.name}
+        </h3>
+
+        <span className="text-cyan-400 font-bold text-lg">
+          {skill.level}%
+        </span>
+
+      </div>
+
+      {isEditing ? (
+
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={skill.level}
+          onChange={(e) => {
+    const value = Number(e.target.value);
+
+    setHasChanges(true);
+
+    setSkills((prev) =>
+        prev.map((s) =>
+            s.name === skill.name
+                ? { ...s, level: value }
+                : s
+        )
+    );
+}}
+          className="w-full accent-cyan-400 cursor-pointer"
+        />
+
+      ) : (
+
+        <div className="w-full h-4 rounded-full bg-gray-700 overflow-hidden">
+
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 transition-all duration-500"
+            style={{
+              width: `${skill.level}%`,
+            }}
           />
 
-          <h2 className="text-2xl font-bold text-white">
-
-            Skill Progress
-
-          </h2>
-
         </div>
 
-        <div className="space-y-7">
+      )}
 
-          {skills.map((skill) => (
+    </div>
 
-            <div key={skill.name}>
+  ))}
 
-              <div className="flex justify-between mb-2">
+</div>
 
-                <span className="text-white font-medium">
+  <button
+  onClick={() => setShowAll(!showAll)}
+  className="
+    mt-8
+    text-cyan-400
+    hover:text-cyan-300
+    font-semibold
+  "
+>
+  {showAll ? "▲ Show Less" : "▼ View All Skills"}
+</button>
 
-                  {skill.name}
+</div>
+{/* Skill Intelligence */}
 
-                </span>
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
 
-                <span className="text-cyan-400 font-bold">
+  <RadarSkillChart
+  technicalSkills={skills.map((skill) => ({
+    skill: skill.name,
+    score: skill.level,
+  }))}
+/>
 
-                  {skill.level}%
+  <WeakSkillsCard
+    weakSkills={analysis?.weak_skills || []}
+  />
 
-                </span>
+</div>
 
-              </div>
+{/* Courses */}
 
-              <div className="h-3 rounded-full bg-white/10 overflow-hidden">
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
 
-                <div
-                  className="
-                    h-full
-                    rounded-full
-                    bg-gradient-to-r
-                    from-violet-500
-                    via-fuchsia-500
-                    to-cyan-400
-                  "
-                  style={{
-                    width: `${skill.level}%`,
-                  }}
-                ></div>
+  <RecommendedCoursesCard
+    courses={analysis?.recommended_courses || []}
+  />
 
-              </div>
+  <LearningTimeCard
+    time={analysis?.estimated_learning_time}
+  />
 
-            </div>
-
-          ))}
-
-        </div>
-
-      </div>
-
-      {/* Continue Here */}
-
-      <div className="grid lg:grid-cols-2 gap-6 mt-8">
-                {/* Skill Statistics */}
-
-        <div
-          className="
-            rounded-3xl
-            border
-            border-white/10
-            bg-white/5
-            p-8
-          "
-        >
-
-          <div className="flex items-center gap-3 mb-6">
-
-            <TrendingUp
-              size={28}
-              className="text-green-400"
-            />
-
-            <h2 className="text-2xl font-bold text-white">
-
-              Skill Statistics
-
-            </h2>
-
-          </div>
-
-          <div className="space-y-6">
-
-            <div className="flex justify-between">
-
-              <span className="text-gray-400">
-
-                Skills Analyzed
-
-              </span>
-
-              <span className="text-white font-bold">
-
-                18
-
-              </span>
-
-            </div>
-
-            <div className="flex justify-between">
-
-              <span className="text-gray-400">
-
-                Strong Skills
-
-              </span>
-
-              <span className="text-green-400 font-bold">
-
-                8
-
-              </span>
-
-            </div>
-
-            <div className="flex justify-between">
-
-              <span className="text-gray-400">
-
-                Skills To Improve
-
-              </span>
-
-              <span className="text-orange-400 font-bold">
-
-                6
-
-              </span>
-
-            </div>
-
-            <div className="flex justify-between">
-
-              <span className="text-gray-400">
-
-                Overall Skill Score
-
-              </span>
-
-              <span className="text-cyan-400 font-bold">
-
-                84%
-
-              </span>
-
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* Strongest Skills */}
-
-        <div
-          className="
-            rounded-3xl
-            border
-            border-white/10
-            bg-white/5
-            p-8
-          "
-        >
-
-          <div className="flex items-center gap-3 mb-6">
-
-            <Code
-              size={28}
-              className="text-violet-400"
-            />
-
-            <h2 className="text-2xl font-bold text-white">
-
-              Strongest Skills
-
-            </h2>
-
-          </div>
-
-          <div className="flex flex-wrap gap-4">
-
-            {[
-              "Python",
-              "Machine Learning",
-              "Data Analysis",
-              "Git",
-              "Problem Solving",
-              "Communication",
-            ].map((skill) => (
-
-              <span
-                key={skill}
-                className="
-                  px-5
-                  py-3
-                  rounded-xl
-                  bg-green-500/10
-                  border
-                  border-green-500/30
-                  text-green-300
-                  font-medium
-                "
-              >
-                ✓ {skill}
-              </span>
-
-            ))}
-
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* Skills To Learn */}
-
-      <div
-        className="
-          mt-8
-          rounded-3xl
-          border
-          border-white/10
-          bg-white/5
-          p-8
-        "
-      >
-
-        <h2 className="text-2xl font-bold text-white mb-6">
-
-          Skills To Learn
-
-        </h2>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-
-          {[
-            "SQL",
-            "Docker",
-            "System Design",
-            "AWS",
-            "CI/CD",
-            "Node.js",
-            "MongoDB",
-            "REST APIs",
-          ].map((skill) => (
-
-            <div
-              key={skill}
-              className="
-                rounded-2xl
-                border
-                border-orange-500/30
-                bg-orange-500/10
-                p-5
-                text-center
-              "
-            >
-
-              <h3 className="text-orange-300 font-semibold">
-
-                {skill}
-
-              </h3>
-
-            </div>
-
-          ))}
-
-        </div>
-
-      </div>      {/* AI Skill Suggestions */}
-
-      <div
-        className="
-          mt-8
-          rounded-3xl
-          border
-          border-white/10
-          bg-white/5
-          p-8
-        "
-      >
-
-        <h2 className="text-2xl font-bold text-white mb-6">
-
-          AI Suggestions
-
-        </h2>
-
-        <div className="space-y-5">
-
-          {[
-            "Improve your SQL skills to become industry-ready.",
-            "Build 2-3 React projects to strengthen frontend development.",
-            "Learn Docker for application deployment.",
-            "Practice Data Structures & Algorithms daily.",
-            "Complete an AWS Cloud Fundamentals certification.",
-          ].map((item) => (
-
-            <div
-              key={item}
-              className="
-                flex
-                items-start
-                gap-4
-                rounded-2xl
-                border
-                border-white/10
-                bg-white/5
-                p-5
-              "
-            >
-
-              <div
-                className="
-                  w-8
-                  h-8
-                  rounded-full
-                  bg-gradient-to-r
-                  from-violet-500
-                  via-fuchsia-500
-                  to-cyan-400
-                  flex
-                  items-center
-                  justify-center
-                  text-white
-                  font-bold
-                  flex-shrink-0
-                "
-              >
-                ✓
-              </div>
-
-              <p className="text-gray-300">
-
-                {item}
-
-              </p>
-
-            </div>
-
-          ))}
-
-        </div>
-
-      </div>
-
-      {/* Recommended Certifications */}
-
-      <div
-        className="
-          mt-8
-          rounded-3xl
-          border
-          border-white/10
-          bg-white/5
-          p-8
-        "
-      >
-
-        <h2 className="text-2xl font-bold text-white mb-6">
-
-          Recommended Certifications
-
-        </h2>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-
-          {[
-            "Google Data Analytics",
-            "AWS Cloud Practitioner",
-            "Microsoft Azure AI",
-            "Oracle SQL",
-          ].map((certificate) => (
-
-            <div
-              key={certificate}
-              className="
-                rounded-2xl
-                border
-                border-cyan-500/30
-                bg-cyan-500/10
-                p-6
-                text-center
-              "
-            >
-
-              <h3 className="text-cyan-300 font-semibold">
-
-                {certificate}
-
-              </h3>
-
-            </div>
-
-          ))}
-
-        </div>
-
-      </div>
+</div>
 
     </DashboardLayout>
   );

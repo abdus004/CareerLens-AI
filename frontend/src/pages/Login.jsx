@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import InputField from "../components/InputField";
 
+const API_URL = "http://127.0.0.1:8000";
+
 export default function Login() {
   const navigate = useNavigate();
 
@@ -13,7 +15,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError("");
 
     if (!email.trim() || !password.trim()) {
@@ -21,44 +23,45 @@ export default function Login() {
       return;
     }
 
-    const users =
-      JSON.parse(localStorage.getItem("users")) || [];
-
-    const foundUser = users.find(
-      (user) =>
-        user.email.toLowerCase() ===
-        email.trim().toLowerCase()
-    );
-
-    if (!foundUser) {
-      setError(
-        "No account found with this email. Please create an account."
-      );
-      return;
-    }
-
-    if (foundUser.password !== password) {
-      setError("Incorrect password.");
-      return;
-    }
-
     setLoading(true);
 
-    setTimeout(() => {
-      if (rememberMe) {
-        localStorage.setItem(
-          "currentUser",
-          JSON.stringify(foundUser)
-        );
-      } else {
-        sessionStorage.setItem(
-          "currentUser",
-          JSON.stringify(foundUser)
-        );
-      }
+try {
+  const response = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: email.trim().toLowerCase(),
+      password: password,
+    }),
+  });
 
-      navigate("/dashboard");
-    }, 1000);
+  const data = await response.json();
+
+  if (!response.ok) {
+    setLoading(false);
+    setError(data.detail || "Invalid email or password.");
+    return;
+  }
+
+  if (rememberMe) {
+    localStorage.setItem("session", JSON.stringify(data.session));
+    localStorage.setItem("user", JSON.stringify(data.user));
+  } else {
+    sessionStorage.setItem("session", JSON.stringify(data.session));
+    sessionStorage.setItem("user", JSON.stringify(data.user));
+  }
+
+  setLoading(false);
+  navigate("/dashboard");
+
+} catch (err) {
+  console.error(err);
+  setLoading(false);
+  setError("Unable to connect to backend.");
+}
+    
   };
 
   return (

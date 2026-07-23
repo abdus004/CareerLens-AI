@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
+import api from "../services/api";
+
 import {
   Brain,
   TrendingUp,
@@ -6,30 +9,39 @@ import {
   Target,
 } from "lucide-react";
 
-const careerMatches = [
-  {
-    title: "AI Engineer",
-    match: 91,
-  },
-  {
-    title: "Data Scientist",
-    match: 88,
-  },
-  {
-    title: "Machine Learning Engineer",
-    match: 86,
-  },
-  {
-    title: "Software Engineer",
-    match: 83,
-  },
-  {
-    title: "Backend Developer",
-    match: 80,
-  },
-];
 
 export default function CareerIntelligence() {
+
+  const [career, setCareer] = useState(null);
+
+  useEffect(() => {
+
+    const storedUser =
+      JSON.parse(localStorage.getItem("user")) ||
+      JSON.parse(sessionStorage.getItem("user"));
+
+    if (!storedUser) return;
+
+    const fetchCareer = async () => {
+
+      try {
+
+        const response = await api.get(
+          `/career/${storedUser.email}`
+        );
+
+        setCareer(response.data);
+
+      } catch (err) {
+        console.error(err);
+      }
+
+    };
+
+    fetchCareer();
+
+  }, []);
+
   return (
     <DashboardLayout>
 
@@ -78,21 +90,21 @@ export default function CareerIntelligence() {
 
         <div className="space-y-6">
 
-          {careerMatches.map((career) => (
+          {career?.top_roles?.map((role, index) => (
 
-            <div key={career.title}>
+            <div key={index}>
 
               <div className="flex justify-between mb-2">
 
                 <span className="text-white font-medium">
 
-                  {career.title}
+                  {role.role}
 
                 </span>
 
                 <span className="text-cyan-400 font-bold">
 
-                  {career.match}%
+                  {role.score}%
 
                 </span>
 
@@ -110,7 +122,7 @@ export default function CareerIntelligence() {
                     to-cyan-400
                   "
                   style={{
-                    width: `${career.match}%`,
+                    width: `${role.score}%`,
                   }}
                 ></div>
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import InputField from "../InputField";
+import { useProfile } from "../../context/ProfileContext";
 
 export default function Education({
   userType,
@@ -14,6 +15,7 @@ export default function Education({
   const [graduationYear, setGraduationYear] = useState("");
   const [cgpa, setCgpa] = useState("");
   const [error, setError] = useState("");
+  const { updateProfile } = useProfile();
 
   const degrees = [
     "B.E",
@@ -27,11 +29,48 @@ export default function Education({
     "Other",
   ];
 
-const handleNext=()=>{
+const handleNext = () => {
 
-onNext();
+  if (!college.trim()) {
+    setError("Please enter your college.");
+    return;
+  }
 
-}
+  if (!branch.trim()) {
+    setError("Please enter your department.");
+    return;
+  }
+
+  if (!degree) {
+    setError("Please select your degree.");
+    return;
+  }
+
+  if (degree === "Other" && !otherDegree.trim()) {
+    setError("Please specify your degree.");
+    return;
+  }
+
+  if (!graduationYear.trim()) {
+    setError("Please enter your graduation year.");
+    return;
+  }
+
+  if (!cgpa.trim()) {
+    setError("Please enter your CGPA.");
+    return;
+  }
+
+  updateProfile({
+    college,
+    department: branch,
+    degree: degree === "Other" ? otherDegree : degree,
+    year: graduationYear,
+    cgpa,
+  });
+
+  onNext();
+};
 
   return (
 

@@ -1,13 +1,14 @@
 import { Briefcase, ArrowRight } from "lucide-react";
 import DashboardCard from "../common/DashboardCard";
 
+import { useNavigate } from "react-router-dom";
+
 export default function CareerMatchCard({
-
   score = 91,
-
   career = "AI Engineer",
-
 }) {
+
+  const navigate = useNavigate();
 
   return (
 
@@ -112,21 +113,19 @@ export default function CareerMatchCard({
         </span>
 
         <button
-          className="
-            flex
-            items-center
-            gap-2
-            text-violet-400
-            hover:text-violet-300
-            transition
-          "
-        >
-
-          View Details
-
-          <ArrowRight size={16} />
-
-        </button>
+  onClick={() => navigate("/career-intelligence")}
+  className="
+    flex
+    items-center
+    gap-2
+    text-violet-400
+    hover:text-violet-300
+    transition
+  "
+>
+  View Details
+  <ArrowRight size={16} />
+</button>
 
       </div>
 

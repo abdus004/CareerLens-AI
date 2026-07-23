@@ -11,13 +11,14 @@ import {
   Plus,
 } from "lucide-react";
 import InputField from "../InputField";
+import { useProfile } from "../../context/ProfileContext";
 
 export default function CareerInterest({ onNext, onBack }) {
   const [selectedRoles, setSelectedRoles] = useState([]);
   const [showOther, setShowOther] = useState(false);
   const [otherCareer, setOtherCareer] = useState("");
   const [error, setError] = useState("");
-
+  
   const roles = [
     { name: "AI Engineer", icon: Brain },
     { name: "Data Scientist", icon: Database },
@@ -28,6 +29,7 @@ export default function CareerInterest({ onNext, onBack }) {
     { name: "Cyber Security", icon: Shield },
     { name: "DevOps Engineer", icon: Settings },
   ];
+  const { updateProfile } = useProfile();
 
   const toggleRole = (role) => {
     if (selectedRoles.includes(role)) {
@@ -40,18 +42,27 @@ export default function CareerInterest({ onNext, onBack }) {
   };
 
   const handleNext = () => {
-    if (
-      selectedRoles.length === 0 &&
-      otherCareer.trim() === ""
-    ) {
-      setError("Please select at least one career interest.");
-      return;
-    }
+  if (
+    selectedRoles.length === 0 &&
+    otherCareer.trim() === ""
+  ) {
+    setError("Please select at least one career interest.");
+    return;
+  }
 
-    setError("");
-    onNext();
-  };
+  const careerGoals = [...selectedRoles];
 
+  if (otherCareer.trim()) {
+    careerGoals.push(otherCareer.trim());
+  }
+
+  updateProfile({
+    career_goal: careerGoals,
+  });
+
+  setError("");
+  onNext();
+};
   return (
     <div>
 

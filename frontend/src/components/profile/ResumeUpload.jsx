@@ -1,5 +1,7 @@
 import { useState } from "react";
 import InputField from "../InputField";
+import { useProfile } from "../../context/ProfileContext";
+import api from "../../services/api";
 
 export default function Portfolio({ onNext, onBack }) {
 
@@ -25,10 +27,69 @@ export default function Portfolio({ onNext, onBack }) {
 
   const [resume, setResume] =
     useState(null);
+  const { updateProfile, profileData } = useProfile();
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
+  try {
+    // -------------------------------
+    // STEP 1 - Save Profile
+    // -------------------------------
+    const finalProfile = {
+      ...profileData,
+      resume_url: "",
+    };
+
+    await api.post("/profile/", finalProfile);
+
+    let fileUrl = "";
+
+    // -------------------------------
+    // STEP 2 - Upload Resume (Optional)
+    // -------------------------------
+    if (resume) {
+      const formData = new FormData();
+
+      formData.append("email", profileData.email);
+      formData.append("file", resume);
+
+      const uploadResponse = await api.post(
+        "/resume/upload",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      fileUrl =
+        uploadResponse.data.resume_url ||
+        uploadResponse.data.file_url ||
+        "";
+
+      finalProfile.resume_url = fileUrl;
+    }
+
+    // -------------------------------
+    // STEP 3 - Update Context
+    // -------------------------------
+    updateProfile(finalProfile);
+
+    // -------------------------------
+    // STEP 4 - Go Dashboard
+    // -------------------------------
     onNext();
-  };
+
+  } catch (error) {
+    console.error("Resume Upload Error:", error);
+
+    if (error.response) {
+      alert(error.response.data.detail);
+    } else {
+      alert("Something went wrong. Please try again.");
+    }
+  }
+};
 
   return (
 
