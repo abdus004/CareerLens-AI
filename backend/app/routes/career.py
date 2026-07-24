@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from app.database.db import supabase
 from app.ai.gemini import generate_json
 from app.ai.prompts import career_recommendation_prompt
+from app.services.learning_path_service import generate_learning_path
 import json
 
 router = APIRouter(
@@ -92,6 +93,19 @@ def generate_career_analysis(email: str):
             )
             .execute()
         )
+    learning_path = generate_learning_path(
+        result["recommended_role"],
+        profile["skills"]
+    )
+
+    supabase.table("learning_paths").upsert(
+        {
+            "email": email,
+            "role": learning_path["role"],
+            "learning_path": learning_path["learning_path"]
+        }
+    ).execute()
+    
 
     return result
 

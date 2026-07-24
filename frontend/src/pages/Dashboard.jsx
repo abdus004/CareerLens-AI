@@ -6,12 +6,8 @@ import WelcomeCard from "../components/dashboard/WelcomeCard";
 import StatsCards from "../components/dashboard/StatsCards";
 import CareerMatchCard from "../components/dashboard/CareerMatchCard";
 import ResumeScoreCard from "../components/dashboard/ResumeScoreCard";
-import SkillProgress from "../components/dashboard/SkillProgress";
-import RecommendedCareers from "../components/dashboard/RecommendedCareers";
-import DailyGoals from "../components/dashboard/DailyGoals";
 import AISuggestions from "../components/dashboard/AISuggestions";
-import Opportunities from "../components/dashboard/Opportunities";
-import RecentActivity from "../components/dashboard/RecentActivity";
+import UpcomingDrives from "../components/dashboard/UpcomingDrives";
 
 export default function Dashboard() {
   const [profile, setProfile] = useState(null);
@@ -68,19 +64,9 @@ export default function Dashboard() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-5">
-        <SkillProgress profile={profile} />
-        <RecommendedCareers />
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-5">
-        <DailyGoals />
-        <AISuggestions />
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-5">
-        <Opportunities />
-        <RecentActivity />
-      </div>
+  <UpcomingDrives />
+  <AISuggestions />
+</div>
     </DashboardLayout>
   );
 }

@@ -9,12 +9,46 @@ import {
 export default function ResumeAnalyzer() {
     const fileInputRef = useRef(null);
 const [resume, setResume] = useState(null);
+const [analysis, setAnalysis] = useState(null);
+const [loading, setLoading] = useState(false);
+const [message, setMessage] = useState("");
 
 const handleFileChange = (e) => {
   if (e.target.files.length > 0) {
     setResume(e.target.files[0]);
   }
 };
+const handleAnalyzeResume = async () => {
+  if (!resume) {
+    alert("Please choose a resume first.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+    setMessage("");
+
+    const formData = new FormData();
+    formData.append("file", resume);
+
+    const response = await fetch("http://127.0.0.1:8000/resume/analyze", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    setAnalysis(data);
+    setMessage("✅ Resume analyzed successfully!");
+
+  } catch (error) {
+    console.error(error);
+    setMessage("❌ Failed to analyze resume.");
+  } finally {
+    setLoading(false);
+  }
+};
+
   return (
     <DashboardLayout>
 
@@ -102,6 +136,38 @@ const handleFileChange = (e) => {
       📄 {resume.name}
     </p>
   )}
+{resume && (
+  <button
+    onClick={handleAnalyzeResume}
+    disabled={loading}
+    className="
+      mt-5
+      px-8
+      py-3
+      rounded-2xl
+      bg-cyan-500
+      text-white
+      font-semibold
+      hover:scale-105
+      transition
+      disabled:opacity-50
+    "
+  >
+    {loading ? "Analyzing..." : "Analyze Resume"}
+  </button>
+)}
+
+{message && (
+  <p
+    className={`mt-4 text-center font-medium ${
+      message.startsWith("✅")
+        ? "text-green-400"
+        : "text-red-400"
+    }`}
+  >
+    {message}
+  </p>
+)}
 </>
 
       </div>
@@ -129,7 +195,7 @@ const handleFileChange = (e) => {
 
             <h2 className="text-2xl font-bold text-white">
 
-              ATS Resume Score
+              Resume Score
 
             </h2>
 
@@ -154,13 +220,13 @@ const handleFileChange = (e) => {
 
                 <h1 className="text-5xl font-black text-white text-center">
 
-                  92%
+                  {analysis?.resume_score ?? "--"}%
 
                 </h1>
 
                 <p className="text-gray-400 text-center mt-2">
 
-                  Excellent
+                  {analysis?.resume_rating ?? "Not Analyzed"}
 
                 </p>
 
@@ -193,7 +259,7 @@ const handleFileChange = (e) => {
 
             <h2 className="text-2xl font-bold text-white">
 
-              Resume Summary
+              Analysis Breakdown
 
             </h2>
 
@@ -201,189 +267,33 @@ const handleFileChange = (e) => {
 
           <div className="space-y-5 mt-8">
 
-            <div className="flex justify-between">
+  <div className="flex justify-between">
+    <span className="text-gray-400">ATS Score</span>
+    <span className="text-cyan-400 font-bold">{analysis?.ats_score ?? "--"}%</span>
+  </div>
 
-              <span className="text-gray-400">
+  <div className="flex justify-between">
+    <span className="text-gray-400">Grammar Score</span>
+    <span className="text-green-400 font-bold">{analysis?.grammar_score ?? "--"}%</span>
+  </div>
 
-                Skills Detected
+  <div className="flex justify-between">
+    <span className="text-gray-400">Keyword Score</span>
+    <span className="text-yellow-400 font-bold">{analysis?.keyword_score ?? "--"}%</span>
+  </div>
 
-              </span>
+  <div className="flex justify-between">
+    <span className="text-gray-400">Formatting Score</span>
+    <span className="text-violet-400 font-bold">{analysis?.formatting_score ?? "--"}%</span>
+  </div>
 
-              <span className="text-white font-semibold">
-
-                14
-
-              </span>
-
-            </div>
-
-            <div className="flex justify-between">
-
-              <span className="text-gray-400">
-
-                Projects
-
-              </span>
-
-              <span className="text-white font-semibold">
-
-                4
-
-              </span>
-
-            </div>
-
-            <div className="flex justify-between">
-
-              <span className="text-gray-400">
-
-                Certifications
-
-              </span>
-
-              <span className="text-white font-semibold">
-
-                3
-
-              </span>
-
-            </div>
-
-            <div className="flex justify-between">
-
-              <span className="text-gray-400">
-
-                Experience
-
-              </span>
-
-              <span className="text-white font-semibold">
-
-                Fresher
-
-              </span>
-
-            </div>
-
-          </div>
+</div>
 
         </div>
 
       </div>
 
-      {/* Next Section Starts Here */}
-
-      <div className="grid lg:grid-cols-2 gap-6 mt-8">
-                {/* Resume Strengths */}
-
-        <div
-          className="
-            rounded-3xl
-            border
-            border-white/10
-            bg-white/5
-            p-8
-          "
-        >
-
-          <h2 className="text-2xl font-bold text-white mb-6">
-
-            Resume Strengths
-
-          </h2>
-
-          <div className="grid grid-cols-2 gap-4">
-
-            {[
-              "Python",
-              "Machine Learning",
-              "Data Analysis",
-              "Git & GitHub",
-              "Projects",
-              "Problem Solving",
-              "Communication",
-              "Team Work",
-            ].map((skill) => (
-
-              <div
-                key={skill}
-                className="
-                  rounded-xl
-                  border
-                  border-green-500/30
-                  bg-green-500/10
-                  px-5
-                  py-4
-                  text-green-300
-                  font-medium
-                "
-              >
-
-                ✓ {skill}
-
-              </div>
-
-            ))}
-
-          </div>
-
-        </div>
-
-        {/* Missing Skills */}
-
-        <div
-          className="
-            rounded-3xl
-            border
-            border-white/10
-            bg-white/5
-            p-8
-          "
-        >
-
-          <h2 className="text-2xl font-bold text-white mb-6">
-
-            Missing Skills
-
-          </h2>
-
-                    <div className="flex flex-wrap gap-4">
-
-            {[
-              "SQL",
-              "Docker",
-              "React",
-              "System Design",
-              "AWS",
-              "CI/CD",
-              "REST APIs",
-              "Testing",
-            ].map((skill) => (
-
-              <span
-                key={skill}
-                className="
-                  px-5
-                  py-3
-                  rounded-xl
-                  border
-                  border-red-500/30
-                  bg-red-500/10
-                  text-red-300
-                  font-medium
-                "
-              >
-                {skill}
-              </span>
-
-            ))}
-
-          </div>
-
-        </div>
-
-      </div>
-
+      
       {/* Resume Suggestions */}
 
       <div
@@ -405,83 +315,47 @@ const handleFileChange = (e) => {
 
         <div className="space-y-5">
 
-          {[
-            "Add measurable achievements to your projects.",
-            "Include SQL and database-related projects.",
-            "Highlight internships and certifications prominently.",
-            "Use ATS-friendly keywords based on your target role.",
-            "Keep your resume to one page with consistent formatting.",
-          ].map((item) => (
+          {analysis?.suggestions?.map((item, index) => (
+  <div
+    key={index}
+    className="
+      flex
+      items-start
+      gap-4
+      rounded-2xl
+      border
+      border-white/10
+      bg-white/5
+      p-5
+    "
+  >
+    <div
+      className="
+        w-8
+        h-8
+        rounded-full
+        bg-gradient-to-r
+        from-violet-500
+        via-fuchsia-500
+        to-cyan-400
+        flex
+        items-center
+        justify-center
+        text-white
+        font-bold
+        flex-shrink-0
+      "
+    >
+      ✓
+    </div>
 
-            <div
-              key={item}
-              className="
-                flex
-                items-start
-                gap-4
-                rounded-2xl
-                border
-                border-white/10
-                bg-white/5
-                p-5
-              "
-            >
-
-              <div
-                className="
-                  w-8
-                  h-8
-                  rounded-full
-                  bg-gradient-to-r
-                  from-violet-500
-                  via-fuchsia-500
-                  to-cyan-400
-                  flex
-                  items-center
-                  justify-center
-                  text-white
-                  font-bold
-                  flex-shrink-0
-                "
-              >
-                ✓
-              </div>
-
-              <p className="text-gray-300">
-
-                {item}
-
-              </p>
-
-            </div>
-
-          ))}
+    <p className="text-gray-300">
+      {item}
+    </p>
+  </div>
+))}
 
         </div>
-
-      </div>
-
-      {/* Download Report */}
-
-      <div className="mt-8 flex justify-end">
-
-        <button
-          className="
-            px-8
-            py-3
-            rounded-2xl
-            bg-gradient-to-r
-            from-violet-600
-            via-fuchsia-600
-            to-cyan-500
-            text-white
-            font-semibold
-            hover:scale-105
-            transition
-          "
-        >
-          Download Analysis Report
-        </button>
 
       </div>
 

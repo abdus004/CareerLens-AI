@@ -102,3 +102,42 @@ async def upload_resume(
     finally:
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
+
+from app.services.resume_parser import extract_text
+from app.services.resume_analyzer import analyze_resume
+import uuid
+import os
+
+@router.post("/analyze")
+async def analyze_resume_route(
+    file: UploadFile = File(...)
+):
+    temp_path = None
+
+    try:
+        filename = f"{uuid.uuid4()}_{file.filename}"
+
+        file_bytes = await file.read()
+
+        temp_path = f"temp_{filename}"
+
+        with open(temp_path, "wb") as f:
+            f.write(file_bytes)
+
+        # Extract text from the resume
+        resume_text = extract_text(temp_path)
+
+        # Analyze with Gemini
+        analysis = analyze_resume(resume_text)
+
+        return analysis
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
