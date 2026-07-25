@@ -10,28 +10,28 @@ import DashboardCard from "../common/DashboardCard";
 const stats = [
   {
     title: "Projects",
-    value: "04",
+    value: "02",
     subtitle: "+1 This Month",
     icon: FolderOpen,
     color: "text-cyan-400",
   },
   {
     title: "Certificates",
-    value: "07",
+    value: "03",
     subtitle: "Google • AWS",
     icon: Award,
     color: "text-yellow-400",
   },
   {
     title: "Skills",
-    value: "15",
+    value: "10",
     subtitle: "Advanced",
     icon: Code2,
     color: "text-green-400",
   },
   {
     title: "Profile",
-    value: "87%",
+    value: "78%",
     subtitle: "Excellent",
     icon: UserCircle2,
     color: "text-violet-400",
