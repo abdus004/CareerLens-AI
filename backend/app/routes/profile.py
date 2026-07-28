@@ -3,11 +3,13 @@ from pydantic import BaseModel
 from typing import List
 from app.database.db import supabase
 import json
+import logging
 
 router = APIRouter(
     prefix="/profile",
     tags=["Profile"]
 )
+logger = logging.getLogger(__name__)
 
 
 class ProfileCreate(BaseModel):
@@ -37,6 +39,7 @@ class ProfileCreate(BaseModel):
 def create_profile(profile: ProfileCreate):
 
     try:
+        logger.info(f"Saving profile: {profile.email}")
         data = profile.model_dump()
 
         # Convert lists to JSON strings
@@ -53,14 +56,12 @@ def create_profile(profile: ProfileCreate):
         )
 
         if existing.data:
+# Always save the latest profile skills entered by the user.
+# Resume skills should be stored separately (resume_skills column)
+# and merged later during Skill Analysis.
+            data["skills"] = json.dumps(data["skills"])
 
-            # Preserve resume extracted skills if they already exist
-            existing_skills = existing.data[0]["skills"]
-
-            if existing_skills:
-                data["skills"] = existing_skills
-            else:
-                data["skills"] = json.dumps(data["skills"])
+           
 
             response = (
                 supabase
@@ -89,6 +90,8 @@ def create_profile(profile: ProfileCreate):
         }
 
     except Exception as e:
+        logger.exception(f"Profile save failed: {profile.email}")
+        
         raise HTTPException(
             status_code=500,
             detail=str(e)

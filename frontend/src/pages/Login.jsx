@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import InputField from "../components/InputField";
+import { saveSession } from "../utils/session";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -45,13 +46,7 @@ try {
     return;
   }
 
-  if (rememberMe) {
-    localStorage.setItem("session", JSON.stringify(data.session));
-    localStorage.setItem("user", JSON.stringify(data.user));
-  } else {
-    sessionStorage.setItem("session", JSON.stringify(data.session));
-    sessionStorage.setItem("user", JSON.stringify(data.user));
-  }
+  saveSession(data.user, data.session, rememberMe);
 
   setLoading(false);
   navigate("/dashboard");

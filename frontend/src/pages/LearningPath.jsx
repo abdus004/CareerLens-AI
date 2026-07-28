@@ -6,6 +6,7 @@ import {
   Circle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { getCurrentUser } from "../utils/session";
 
 export default function LearningPath() {
 
@@ -19,9 +20,7 @@ useEffect(() => {
 
     try {
 
-      const storedUser =
-  JSON.parse(localStorage.getItem("user")) ||
-  JSON.parse(sessionStorage.getItem("user"));
+      const storedUser = getCurrentUser();
 
 if (!storedUser) return;
 

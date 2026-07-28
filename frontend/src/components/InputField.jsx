@@ -7,6 +7,7 @@ export default function InputField({
   placeholder,
   value,
   onChange,
+  error,
 }) {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -43,11 +44,11 @@ export default function InputField({
           placeholder={placeholder}
           value={value}
           onChange={onChange}
-          className="
+          className={`
             w-full
             rounded-2xl
             border
-            border-white/10
+            ${error ? "border-red-500/50" : "border-white/10"}
             bg-white/5
             px-5
             py-3
@@ -60,7 +61,7 @@ export default function InputField({
             focus:ring-2
             focus:ring-violet-500/40
             focus:bg-white/10
-          "
+          `}
         />
 
         {type === "password" && (
@@ -86,6 +87,15 @@ export default function InputField({
         )}
 
       </div>
+
+      {/* Error message - previously accepted as a prop but never
+          rendered, so validation messages were silently invisible. */}
+
+      {error && (
+        <p className="mt-2 text-sm text-red-400">
+          {error}
+        </p>
+      )}
 
     </div>
   );

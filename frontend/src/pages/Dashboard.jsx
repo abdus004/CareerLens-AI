@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import { getCurrentUser } from "../utils/session";
 
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import WelcomeCard from "../components/dashboard/WelcomeCard";
@@ -14,9 +15,7 @@ export default function Dashboard() {
   const [career, setCareer] = useState(null);
 
   useEffect(() => {
-    const storedUser =
-      JSON.parse(localStorage.getItem("user")) ||
-      JSON.parse(sessionStorage.getItem("user"));
+    const storedUser = getCurrentUser();
 
     if (!storedUser) return;
 
