@@ -25,4 +25,11 @@ def generate_json(prompt: str):
     elif text.startswith("```"):
         text = text.replace("```", "").strip()
 
-    return json.loads(text)
+    try:
+        return json.loads(text)
+    
+    except json.JSONDecodeError:
+        raise Exception(
+            f"Gemini returned invalid JSON:\n\n{text}"
+        )
+    

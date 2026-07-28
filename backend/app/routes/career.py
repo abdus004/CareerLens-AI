@@ -35,7 +35,10 @@ def generate_career_analysis(email: str):
     profile = response.data
 
     # Convert JSON strings back to Python objects
-    for field in ["career_goal", "interests", "skills"]:
+    for field in [
+        "career_goal", "interests", "skills",
+        "projects", "internships", "certifications",
+    ]:
         if profile.get(field):
             try:
                 profile[field] = json.loads(profile[field])
@@ -136,11 +139,11 @@ def get_career_analysis(email: str):
             .table("career_analysis")
             .select("*")
             .eq("email", email)
-            .single()
+            .maybe_single()
             .execute()
         )
 
-        if not response.data:
+        if not response or not response.data:
             raise HTTPException(
                 status_code=404,
                 detail="Career analysis not found"

@@ -3,6 +3,7 @@ import {
   BarChart3,
   TrendingUp,
   Code,
+  RefreshCw,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -10,159 +11,174 @@ import RadarSkillChart from "../components/dashboard/RadarSkillChart";
 import WeakSkillsCard from "../components/dashboard/WeakSkillsCard";
 import RecommendedCoursesCard from "../components/dashboard/RecommendedCoursesCard";
 import LearningTimeCard from "../components/dashboard/LearningTimeCard";
-
-const skills = [
-  { name: "Python", level: 92 },
-  { name: "Machine Learning", level: 88 },
-  { name: "SQL", level: 72 },
-  { name: "React", level: 64 },
-  { name: "Git & GitHub", level: 84 },
-];
-
+import { getCurrentUser } from "../utils/session";
 
 export default function SkillAnalysis() {
   const [skills, setSkills] = useState([]);
   const [analysis, setAnalysis] = useState(null);
-const [loading, setLoading] = useState(true);
-const [showAll, setShowAll] = useState(false);
-const [isEditing, setIsEditing] = useState(false);
-const [buttonText, setButtonText] = useState("Edit");
-const [isSaving, setIsSaving] = useState(false);
-const [hasChanges, setHasChanges] = useState(false);
-const [reanalyzing, setReanalyzing] = useState(false);
-const [reanalyzeText, setReanalyzeText] = useState("✨ Reanalyze");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showAll, setShowAll] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [buttonText, setButtonText] = useState("Edit");
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [reanalyzing, setReanalyzing] = useState(false);
+  const [reanalyzeText, setReanalyzeText] = useState("✨ Reanalyze");
 
+  // Loads the dashboard profile + Skill Analysis for the logged in user.
+  // If no analysis exists yet (first-time user), this automatically
+  // generates one via Gemini instead of showing fake placeholder values.
+  // If an analysis already exists, it is loaded as-is - this function
+  // never regenerates on its own; only reanalyzeSkills() (the Reanalyze
+  // button) does that, on explicit user request.
+  const loadSkillData = async (attemptedAutoGenerate = false) => {
+    const user = getCurrentUser();
 
-const fetchSkills = async () => {
-  try {
-    // Get logged in user
-    const user =
-      JSON.parse(localStorage.getItem("user")) ||
-      JSON.parse(sessionStorage.getItem("user"));
-
-    if (!user) {
-      console.log("User not found");
+    if (!user?.email) {
+      setError("You need to be logged in to view Skill Analysis.");
+      setLoading(false);
       return;
     }
 
-    // Fetch dashboard data
-    const response = await axios.get(
-      `http://127.0.0.1:8000/dashboard/${user.email}`
-    );
+    try {
+      const dashboardResponse = await axios.get(
+        `http://127.0.0.1:8000/dashboard/${user.email}`
+      );
 
-    const profile = response.data.data;
+      const profile = dashboardResponse.data.data;
+      const detectedSkills = profile.skills || [];
+      const skillLevels = profile.skill_levels || {};
 
-    const detectedSkills = profile.skills || [];
-    const skillLevels = profile.skill_levels || {};
+      let analysisData = null;
 
-    // Convert to frontend format
-    const formattedSkills = detectedSkills.map((skill) => ({
-      name: skill,
-      level: skillLevels[skill] ?? 50,
-    }));
-
-    setSkills(formattedSkills);
-
-    // Fetch AI Skill Analysis
-const analysisResponse = await axios.get(
-  `http://127.0.0.1:8000/skills/${user.email}`
-);
-
-setAnalysis(analysisResponse.data);
-
-  } catch (error) {
-    console.error("Error fetching skills:", error);
-  } finally {
-    setLoading(false);
-  }
-};
-const reanalyzeSkills = async () => {
-  try {
-    const user =
-      JSON.parse(localStorage.getItem("user")) ||
-      JSON.parse(sessionStorage.getItem("user"));
-
-    if (!user) return;
-
-    setReanalyzing(true);
-    setReanalyzeText("⏳ Reanalyzing...");
-
-    await axios.post(
-      `http://127.0.0.1:8000/skills/analyze/${user.email}`
-    );
-
-    await fetchSkills();
-
-    setReanalyzeText("✅ Analysis Updated");
-
-    setTimeout(() => {
-      setReanalyzeText("✨ Reanalyze");
-      setReanalyzing(false);
-    }, 2000);
-
-  } catch (error) {
-    console.error(error);
-
-    setReanalyzeText("❌ Failed");
-
-    setTimeout(() => {
-      setReanalyzeText("✨ Reanalyze");
-      setReanalyzing(false);
-    }, 2000);
-  }
-};
-const saveSkill = async () => {
-  if (!isEditing) {
-    setIsEditing(true);
-    setButtonText("Save Changes");
-    return;
-  }
-
-  try {
-    setIsSaving(true);
-    setButtonText("Saving...");
-
-    const user =
-      JSON.parse(localStorage.getItem("user")) ||
-      JSON.parse(sessionStorage.getItem("user"));
-
-    if (!user) return;
-
-    const skillLevels = {};
-
-    skills.forEach((skill) => {
-      skillLevels[skill.name] = skill.level;
-    });
-
-    await axios.put(
-      `http://127.0.0.1:8000/skills/${user.email}`,
-      {
-        skill_levels: skillLevels,
+      try {
+        const analysisResponse = await axios.get(
+          `http://127.0.0.1:8000/skills/${user.email}`
+        );
+        analysisData = analysisResponse.data;
+      } catch (err) {
+        if (err?.response?.status === 404 && !attemptedAutoGenerate) {
+          // No Skill Analysis exists yet for this user - generate one
+          // now, automatically, the first time only. Reload everything
+          // from the database afterward so what's shown always matches
+          // what's actually persisted (rather than trusting the POST
+          // response shape to exactly match the GET response shape).
+          await axios.post(
+            `http://127.0.0.1:8000/skills/analyze/${user.email}`
+          );
+          return loadSkillData(true);
+        }
+        throw err;
       }
-    );
-    setHasChanges(false);
-    setButtonText("✓ Saved");
 
-    setTimeout(() => {
-  setButtonText("Edit");
-  setIsEditing(false);
-  setIsSaving(false);
-}, 500);
+      // Real skill levels only - no fake/placeholder default. A skill
+      // detected on the resume that the AI analysis didn't score is
+      // shown as 0 (clearly "not yet rated") rather than a fabricated
+      // 50%, which would look like a real, meaningful score.
+      const formattedSkills = detectedSkills.map((skill) => ({
+        name: skill,
+        level: skillLevels[skill] ?? 0,
+      }));
 
-  } catch (error) {
-    console.error(error);
+      setSkills(formattedSkills);
+      setAnalysis(analysisData);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching skills:", err);
+      setError(
+        err?.response?.data?.detail ||
+          "We couldn't load your Skill Analysis. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    setButtonText("Save Changes");
+  const reanalyzeSkills = async () => {
+    const user = getCurrentUser();
+    if (!user?.email) return;
 
-    setIsSaving(false);
-  }
-};
-useEffect(() => {
-    fetchSkills();
-}, []);
+    try {
+      setReanalyzing(true);
+      setReanalyzeText("⏳ Reanalyzing...");
 
-console.log(skills);
-console.log(analysis);
+      await axios.post(
+        `http://127.0.0.1:8000/skills/analyze/${user.email}`
+      );
+
+      // We already know an analysis exists now (we just created/updated
+      // it) - skip the auto-generate-if-missing branch and just reload.
+      await loadSkillData(true);
+
+      setReanalyzeText("✅ Analysis Updated");
+
+      setTimeout(() => {
+        setReanalyzeText("✨ Reanalyze");
+        setReanalyzing(false);
+      }, 2000);
+
+    } catch (error) {
+      console.error(error);
+
+      setReanalyzeText("❌ Failed");
+
+      setTimeout(() => {
+        setReanalyzeText("✨ Reanalyze");
+        setReanalyzing(false);
+      }, 2000);
+    }
+  };
+
+  const saveSkill = async () => {
+    if (!isEditing) {
+      setIsEditing(true);
+      setButtonText("Save Changes");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setButtonText("Saving...");
+
+      const user = getCurrentUser();
+      if (!user?.email) return;
+
+      const skillLevels = {};
+
+      skills.forEach((skill) => {
+        skillLevels[skill.name] = skill.level;
+      });
+
+      await axios.put(
+        `http://127.0.0.1:8000/skills/${user.email}`,
+        {
+          skill_levels: skillLevels,
+        }
+      );
+
+      setHasChanges(false);
+      setButtonText("✓ Saved");
+
+      setTimeout(() => {
+        setButtonText("Edit");
+        setIsEditing(false);
+        setIsSaving(false);
+      }, 500);
+
+    } catch (error) {
+      console.error(error);
+
+      setButtonText("Save Changes");
+      setIsSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    loadSkillData();
+  }, []);
+
   return (
     <DashboardLayout>
 
@@ -184,199 +200,261 @@ console.log(analysis);
         </p>
 
       </div>
-      {/* Skill Analysis Card */}
 
-<div
-  className="
-    rounded-3xl
-    border
-    border-white/10
-    bg-white/5
-    p-8
-  "
->
-
-  <div className="flex items-center justify-between mb-8">
-
-    <h2 className="text-2xl font-bold text-white">
-
-      Skill Analysis
-
-    </h2>
-
-    <div className="flex items-center gap-3">
-
-  <button
-  onClick={reanalyzeSkills}
-  disabled={reanalyzing}
-  className={`
-    px-5
-    py-2
-    rounded-xl
-    transition-all
-    duration-300
-    ${
-      reanalyzing
-        ? "bg-purple-600 text-white cursor-not-allowed"
-        : "bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 hover:scale-105"
-    }
-  `}
->
-  {reanalyzeText}
-</button>
-
-  <button
-    onClick={saveSkill}
-    disabled={isSaving}
-    className={`
-        px-5
-        py-2
-        rounded-xl
-        font-semibold
-        transition-all
-        duration-300
-
-        ${
-            isEditing
-                ? "bg-cyan-500 text-white"
-                : "bg-cyan-500/20 text-cyan-300"
-        }
-
-        ${
-            isSaving
-                ? "opacity-70 cursor-not-allowed"
-                : "hover:scale-105"
-        }
-    `}
-  >
-    {buttonText}
-  </button>
-
-</div>
-
-  </div>
-
-  <div className="space-y-8">
-
-  {(showAll ? skills : skills.slice(0, 5)).map((skill) => (
-
-    <div
-      key={skill.name}
-      className="rounded-2xl bg-white/5 border border-white/10 p-5 hover:border-cyan-400/40 transition-all duration-300"
-    >
-
-      <div className="flex justify-between items-center mb-3">
-
-        <h3 className="text-white font-semibold text-lg">
-          {skill.name}
-        </h3>
-
-        <span className="text-cyan-400 font-bold text-lg">
-          {skill.level}%
-        </span>
-
-      </div>
-
-      {isEditing ? (
-
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={skill.level}
-          onChange={(e) => {
-    const value = Number(e.target.value);
-
-    setHasChanges(true);
-
-    setSkills((prev) =>
-        prev.map((s) =>
-            s.name === skill.name
-                ? { ...s, level: value }
-                : s
-        )
-    );
-}}
-          className="w-full accent-cyan-400 cursor-pointer"
-        />
-
-      ) : (
-
-        <div className="w-full h-4 rounded-full bg-gray-700 overflow-hidden">
-
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 transition-all duration-500"
-            style={{
-              width: `${skill.level}%`,
-            }}
-          />
-
+      {/* Loading state (initial load, or first-time auto-generation) */}
+      {loading && (
+        <div
+          className="
+            rounded-3xl
+            border
+            border-white/10
+            bg-white/5
+            p-12
+            flex flex-col items-center justify-center gap-4
+          "
+        >
+          <RefreshCw className="text-cyan-400 animate-spin" size={36} />
+          <p className="text-gray-300 text-lg">
+            Loading your Skill Analysis...
+          </p>
         </div>
-
       )}
 
-    </div>
+      {/* Error state */}
+      {!loading && error && (
+        <div
+          className="
+            rounded-3xl
+            border
+            border-red-500/30
+            bg-red-500/5
+            p-12
+            flex flex-col items-center justify-center gap-4
+          "
+        >
+          <p className="text-red-300 text-lg text-center">
+            {error}
+          </p>
+          <button
+            onClick={() => {
+              setLoading(true);
+              loadSkillData();
+            }}
+            className="
+              px-5 py-3
+              rounded-xl
+              bg-red-500/10
+              border border-red-500/30
+              text-red-300
+              font-medium
+              hover:bg-red-500/20
+            "
+          >
+            Try Again
+          </button>
+        </div>
+      )}
 
-  ))}
+      {!loading && !error && (
+        <>
 
-</div>
+          {/* Skill Analysis Card */}
 
-  <button
-  onClick={() => setShowAll(!showAll)}
-  className="
-    mt-8
-    text-cyan-400
-    hover:text-cyan-300
-    font-semibold
-  "
->
-  {showAll ? "▲ Show Less" : "▼ View All Skills"}
-</button>
+          <div
+            className="
+              rounded-3xl
+              border
+              border-white/10
+              bg-white/5
+              p-8
+            "
+          >
 
-</div>
-{/* Skill Intelligence */}
+            <div className="flex items-center justify-between mb-8">
 
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+              <h2 className="text-2xl font-bold text-white">
 
-  <RadarSkillChart
-  technicalSkills={
-    analysis?.important_skills
-      ?.map((importantSkill) => {
-        const matchedSkill = skills.find(
-          (skill) =>
-            skill.name.toLowerCase() === importantSkill.toLowerCase()
-        );
+                Skill Analysis
 
-        return matchedSkill
-          ? {
-              skill: matchedSkill.name,
-              score: matchedSkill.level,
-            }
-          : null;
-      })
-      .filter(Boolean) || []
-  }
-/>
+              </h2>
 
-  <WeakSkillsCard
-    weakSkills={analysis?.weak_skills || []}
-  />
+              <div className="flex items-center gap-3">
 
-</div>
+                <button
+                  onClick={reanalyzeSkills}
+                  disabled={reanalyzing}
+                  className={`
+                    px-5
+                    py-2
+                    rounded-xl
+                    transition-all
+                    duration-300
+                    ${
+                      reanalyzing
+                        ? "bg-purple-600 text-white cursor-not-allowed"
+                        : "bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 hover:scale-105"
+                    }
+                  `}
+                >
+                  {reanalyzeText}
+                </button>
 
-{/* Courses */}
+                <button
+                  onClick={saveSkill}
+                  disabled={isSaving}
+                  className={`
+                      px-5
+                      py-2
+                      rounded-xl
+                      font-semibold
+                      transition-all
+                      duration-300
 
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                      ${
+                          isEditing
+                              ? "bg-cyan-500 text-white"
+                              : "bg-cyan-500/20 text-cyan-300"
+                      }
 
-  <RecommendedCoursesCard
-    courses={analysis?.recommended_courses || []}
-  />
+                      ${
+                          isSaving
+                              ? "opacity-70 cursor-not-allowed"
+                              : "hover:scale-105"
+                      }
+                  `}
+                >
+                  {buttonText}
+                </button>
 
-  <LearningTimeCard
-    time={analysis?.estimated_learning_time}
-  />
+              </div>
 
-</div>
+            </div>
+
+            <div className="space-y-8">
+
+              {(showAll ? skills : skills.slice(0, 5)).map((skill) => (
+
+                <div
+                  key={skill.name}
+                  className="rounded-2xl bg-white/5 border border-white/10 p-5 hover:border-cyan-400/40 transition-all duration-300"
+                >
+
+                  <div className="flex justify-between items-center mb-3">
+
+                    <h3 className="text-white font-semibold text-lg">
+                      {skill.name}
+                    </h3>
+
+                    <span className="text-cyan-400 font-bold text-lg">
+                      {skill.level}%
+                    </span>
+
+                  </div>
+
+                  {isEditing ? (
+
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={skill.level}
+                      onChange={(e) => {
+                        const value = Number(e.target.value);
+
+                        setHasChanges(true);
+
+                        setSkills((prev) =>
+                            prev.map((s) =>
+                                s.name === skill.name
+                                    ? { ...s, level: value }
+                                    : s
+                            )
+                        );
+                      }}
+                      className="w-full accent-cyan-400 cursor-pointer"
+                    />
+
+                  ) : (
+
+                    <div className="w-full h-4 rounded-full bg-gray-700 overflow-hidden">
+
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 transition-all duration-500"
+                        style={{
+                          width: `${skill.level}%`,
+                        }}
+                      />
+
+                    </div>
+
+                  )}
+
+                </div>
+
+              ))}
+
+            </div>
+
+            <button
+              onClick={() => setShowAll(!showAll)}
+              className="
+                mt-8
+                text-cyan-400
+                hover:text-cyan-300
+                font-semibold
+              "
+            >
+              {showAll ? "▲ Show Less" : "▼ View All Skills"}
+            </button>
+
+          </div>
+
+          {/* Skill Intelligence */}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+
+            <RadarSkillChart
+              technicalSkills={
+                analysis?.important_skills
+                  ?.map((importantSkill) => {
+                    const matchedSkill = skills.find(
+                      (skill) =>
+                        skill.name.toLowerCase() === importantSkill.toLowerCase()
+                    );
+
+                    return matchedSkill
+                      ? {
+                          skill: matchedSkill.name,
+                          score: matchedSkill.level,
+                        }
+                      : null;
+                  })
+                  .filter(Boolean) || []
+              }
+            />
+
+            <WeakSkillsCard
+              weakSkills={analysis?.weak_skills || []}
+            />
+
+          </div>
+
+          {/* Courses */}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+
+            <RecommendedCoursesCard
+              courses={analysis?.recommended_courses || []}
+            />
+
+            <LearningTimeCard
+              time={analysis?.estimated_learning_time}
+            />
+
+          </div>
+
+        </>
+      )}
 
     </DashboardLayout>
   );

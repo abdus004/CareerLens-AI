@@ -1,6 +1,7 @@
 import { useState } from "react";
 import InputField from "../InputField";
 import { useProfile } from "../../context/ProfileContext";
+import { getCurrentUser } from "../../utils/session";
 
 export default function BasicInfo({ onNext, onBack }) {
   const [name, setName] = useState("");
@@ -11,9 +12,7 @@ export default function BasicInfo({ onNext, onBack }) {
   const [gender, setGender] = useState("");
   const [error, setError] = useState("");
   const { updateProfile } = useProfile();
-  const storedUser =
-  JSON.parse(localStorage.getItem("user")) ||
-  JSON.parse(sessionStorage.getItem("user"));
+  const storedUser = getCurrentUser();
 
 const handleNext = () => {
 

@@ -1,4 +1,4 @@
-import { logoutUser } from "../../utils/usersStorage";
+import { clearSession } from "../../utils/session";
 import {
   Home,
   Brain,
@@ -79,7 +79,7 @@ export default function Sidebar({
   const navigate = useNavigate();
   const location = useLocation();
   const handleLogout = () => {
-  logoutUser();
+  clearSession();
   navigate("/login");
 };
   return (
