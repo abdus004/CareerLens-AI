@@ -1,10 +1,17 @@
 import { FileText } from "lucide-react";
 import DashboardCard from "../common/DashboardCard";
 
-export default function ResumeScoreCard({
-  score = 89,
-  level = "Excellent",
-}) {
+export default function ResumeScoreCard({ analysis }) {
+
+  const score = analysis?.resume_score ?? 0;
+  const level =
+    score >= 85 ? "Excellent" : score >= 65 ? "Good" : score >= 40 ? "Fair" : "Needs Work";
+
+  const grammarScore = analysis?.grammar_score ?? "--";
+  const keywordScore = analysis?.keyword_score ?? "--";
+  const formattingScore = analysis?.formatting_score ?? "--";
+  const atsFriendly = (analysis?.ats_score ?? 0) >= 60;
+
   const radius = 58;
   const circumference = 2 * Math.PI * radius;
   const progress = circumference - (circumference * score) / 100;
@@ -46,17 +53,17 @@ export default function ResumeScoreCard({
                 fill="none"
                 strokeLinecap="round"
                 strokeDasharray={circumference}
-                strokeDashoffset={progress}
+                strokeDashoffset={analysis ? progress : circumference}
               />
             </svg>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <h1 className="text-4xl font-extrabold text-white">
-                {score}%
+                {analysis ? `${score}%` : "--"}
               </h1>
 
               <p className="text-sm text-cyan-400 font-medium mt-1">
-                {level}
+                {analysis ? level : "Not analyzed yet"}
               </p>
             </div>
 
@@ -72,8 +79,12 @@ export default function ResumeScoreCard({
               ATS Friendly
             </span>
 
-            <span className="text-green-400 font-bold text-lg">
-              ✓
+            <span
+              className={`font-bold text-lg ${
+                atsFriendly ? "text-green-400" : "text-gray-500"
+              }`}
+            >
+              {analysis ? (atsFriendly ? "✓" : "✕") : "--"}
             </span>
           </div>
 
@@ -83,7 +94,7 @@ export default function ResumeScoreCard({
             </span>
 
             <span className="text-white font-semibold">
-              90%
+              {typeof grammarScore === "number" ? `${grammarScore}%` : grammarScore}
             </span>
           </div>
 
@@ -93,7 +104,7 @@ export default function ResumeScoreCard({
             </span>
 
             <span className="text-white font-semibold">
-              85%
+              {typeof keywordScore === "number" ? `${keywordScore}%` : keywordScore}
             </span>
           </div>
 
@@ -103,7 +114,7 @@ export default function ResumeScoreCard({
             </span>
 
             <span className="text-white font-semibold">
-              95%
+              {typeof formattingScore === "number" ? `${formattingScore}%` : formattingScore}
             </span>
           </div>
 

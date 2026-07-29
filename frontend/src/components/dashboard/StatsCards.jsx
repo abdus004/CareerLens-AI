@@ -1,48 +1,54 @@
 import {
   FolderOpen,
-  Award,
+  Briefcase,
   Code2,
   UserCircle2,
 } from "lucide-react";
 
 import DashboardCard from "../common/DashboardCard";
 
-const stats = [
-  {
-    title: "Projects",
-    value: "02",
-    subtitle: "+1 This Month",
-    icon: FolderOpen,
-    color: "text-cyan-400",
-  },
-  {
-    title: "Certificates",
-    value: "03",
-    subtitle: "Google • AWS",
-    icon: Award,
-    color: "text-yellow-400",
-  },
-  {
-    title: "Skills",
-    value: "10",
-    subtitle: "Advanced",
-    icon: Code2,
-    color: "text-green-400",
-  },
-  {
-    title: "Profile",
-    value: "78%",
-    subtitle: "Excellent",
-    icon: UserCircle2,
-    color: "text-violet-400",
-  },
-];
+export default function StatsCards({ stats }) {
 
-export default function StatsCards() {
+  const items = [
+    {
+      title: "Projects",
+      value: stats ? String(stats.projects_count) : "--",
+      subtitle: "Portfolio + Resume",
+      icon: FolderOpen,
+      color: "text-cyan-400",
+    },
+    {
+      title: "Internships",
+      value: stats ? String(stats.internships_count) : "--",
+      subtitle: "Portfolio + Resume",
+      icon: Briefcase,
+      color: "text-yellow-400",
+    },
+    {
+      title: "Skills",
+      value: stats ? String(stats.skills_count) : "--",
+      subtitle: "Detected across profile",
+      icon: Code2,
+      color: "text-green-400",
+    },
+    {
+      title: "Profile",
+      value: stats ? `${stats.profile_strength}%` : "--",
+      subtitle:
+        stats && stats.profile_strength >= 80
+          ? "Excellent"
+          : stats && stats.profile_strength >= 50
+          ? "Good"
+          : "Needs Work",
+      icon: UserCircle2,
+      color: "text-violet-400",
+    },
+  ];
+
   return (
     <div className="grid grid-cols-2 xl:grid-cols-4 gap-5">
 
-      {stats.map((item) => {
+      {items.map((item) => {
 
         const Icon = item.icon;
 

@@ -228,3 +228,62 @@ Rules:
 - estimated_learning_time should be realistic (example: "2–3 Months", "4–6 Months", "6–9 Months").
 - Return ONLY valid JSON.
 """
+
+
+def profile_resume_analysis_prompt(resume_text: str) -> str:
+    return f"""
+You are CareerLens AI, an expert resume reviewer and ATS (Applicant
+Tracking System) analyst.
+
+Analyze the following resume text and return a complete, structured
+analysis.
+
+Resume Text:
+
+{resume_text}
+
+Return ONLY valid JSON in exactly this structure:
+
+{{
+    "resume_score": 0,
+    "ats_score": 0,
+    "keyword_score": 0,
+    "formatting_score": 0,
+    "grammar_score": 0,
+    "missing_skills": [],
+    "strengths": [],
+    "weaknesses": [],
+    "ai_summary": "",
+
+    "skills": [],
+    "education": [],
+    "experience": [],
+    "projects": [],
+    "certifications": [],
+    "languages": [],
+
+    "suggestions": [
+        {{
+            "title": "",
+            "description": "",
+            "priority": "High"
+        }}
+    ]
+}}
+
+Rules:
+
+- All *_score fields must be integers between 0 and 100.
+- missing_skills: important skills for this candidate's apparent field that are absent from the resume (maximum 8).
+- strengths / weaknesses: short, specific bullet points (maximum 5 each).
+- ai_summary: 2-3 sentences, plain language, no markdown.
+- skills: every distinct technical skill actually found in the resume text.
+- education: list of objects like {{"degree": "", "institution": "", "year": ""}}.
+- experience: list of objects like {{"role": "", "company": "", "duration": "", "description": ""}} for internships/jobs found in the resume.
+- projects: list of objects like {{"name": "", "description": ""}}.
+- certifications: list of objects like {{"name": "", "organization": "", "year": ""}}.
+- languages: spoken/written languages if explicitly mentioned, otherwise an empty list - never guess.
+- suggestions: 3-5 concrete, actionable improvements. priority must be "High", "Medium", or "Low".
+- Never invent information that is not present in the resume text.
+- Return ONLY valid JSON, no markdown fences, no commentary.
+"""

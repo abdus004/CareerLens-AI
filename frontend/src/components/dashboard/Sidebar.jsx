@@ -6,10 +6,10 @@ import {
   Route,
   FileText,
   Mic,
+  Sparkles,
   Briefcase,
-  ClipboardList,
+  ClipboardCheck,
   Award,
-  FolderOpen,
   Settings,
   HelpCircle,
   LogOut,
@@ -50,12 +50,17 @@ const menuItems = [
     path: "/mock-interview",
   },
   {
-    icon: Briefcase,
-    title: "Opportunities",
+    icon: Sparkles,
+    title: "Job Recommendation",
     path: "/opportunities",
   },
   {
-    icon: ClipboardList,
+    icon: Briefcase,
+    title: "Placement Drives",
+    path: "/portfolio",
+  },
+  {
+    icon: ClipboardCheck,
     title: "Assessments",
     path: "/assessments",
   },
@@ -63,11 +68,6 @@ const menuItems = [
     icon: Award,
     title: "Certificates",
     path: "/certificates",
-  },
-  {
-    icon: FolderOpen,
-    title: "Progress",
-    path: "/portfolio",
   },
 ];
 
@@ -94,7 +94,7 @@ export default function Sidebar({
         flex-col
         h-screen
 
-        ${collapsed ? "w-[75px]" : "w-[240px]"}
+        ${collapsed ? "w-[70px]" : "w-[260px]"}
       `}
     >
 
@@ -227,12 +227,8 @@ export default function Sidebar({
                 {!collapsed && (
 
                   <span className="font-medium">
-
-                    {item.title === "Job Recommendations"
-                      ? "Opportunities"
-                      : item.title}
-
-                  </span>
+  {item.title}
+</span>
 
                 )}
 

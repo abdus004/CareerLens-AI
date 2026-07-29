@@ -1,6 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.database.db import supabase
 from app.services.resume_parser import extract_text, extract_skills
+from app.services.profile_resume_analysis_service import run_profile_resume_analysis
 
 import uuid
 import os
@@ -57,6 +58,21 @@ async def upload_resume(
         print("\n========== SKILLS ==========\n")
         print(skills)
         print("\n============================\n")
+
+        # -----------------------------------------------------------
+        # Dashboard-facing Resume Analysis (scores, structured resume
+        # data, and AI suggestions). This is separate from the
+        # standalone Resume Analyzer feature (/resume/analyze), which
+        # remains independent and stateless - this one persists so the
+        # Dashboard can read it without ever calling Gemini itself.
+        # Wrapped defensively: if this fails for any reason, the resume
+        # upload itself still succeeds, since it's the actual thing the
+        # user is waiting on in Profile Setup.
+        # -----------------------------------------------------------
+        try:
+            run_profile_resume_analysis(email, resume_text)
+        except Exception as analysis_error:
+            print(f"Resume analysis failed (upload still succeeded): {analysis_error}")
 
         # Check profile exists
         existing = (

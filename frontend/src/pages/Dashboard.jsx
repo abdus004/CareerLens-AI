@@ -12,6 +12,9 @@ import UpcomingDrives from "../components/dashboard/UpcomingDrives";
 
 export default function Dashboard() {
   const [profile, setProfile] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [resumeAnalysis, setResumeAnalysis] = useState(null);
+  const [aiSuggestions, setAiSuggestions] = useState([]);
   const [career, setCareer] = useState(null);
 
   useEffect(() => {
@@ -26,6 +29,9 @@ export default function Dashboard() {
         );
 
         setProfile(response.data.data);
+        setStats(response.data.stats);
+        setResumeAnalysis(response.data.resume_analysis);
+        setAiSuggestions(response.data.ai_suggestions || []);
       } catch (err) {
         console.error(err);
       }
@@ -51,7 +57,7 @@ export default function Dashboard() {
     <DashboardLayout>
       <WelcomeCard profile={profile} />
 
-      <StatsCards />
+      <StatsCards stats={stats} />
 
       <div className="grid md:grid-cols-2 gap-5">
         <CareerMatchCard
@@ -59,12 +65,12 @@ export default function Dashboard() {
           career={career?.recommended_role || "Loading..."}
         />
 
-        <ResumeScoreCard />
+        <ResumeScoreCard analysis={resumeAnalysis} />
       </div>
 
       <div className="grid md:grid-cols-2 gap-5">
   <UpcomingDrives />
-  <AISuggestions />
+  <AISuggestions suggestions={aiSuggestions} />
 </div>
     </DashboardLayout>
   );
