@@ -55,10 +55,10 @@ const menuItems = [
     path: "/opportunities",
   },
   {
-    icon: Briefcase,
-    title: "Placement Drives",
-    path: "/portfolio",
-  },
+  icon: Briefcase,
+  title: "Placement Drives",
+  path: "/placement-drives",
+},
   {
     icon: ClipboardCheck,
     title: "Assessments",

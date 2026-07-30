@@ -14,6 +14,7 @@ import Settings from "./pages/Settings";
 import MockInterview from "./pages/MockInterview";
 import Assessments from "./pages/Assessments";
 import Progress from "./pages/Portfolio";
+import UpcomingDrivesPage from "./pages/UpcomingDrives";
 
 export default function App() {
   return (
@@ -73,6 +74,11 @@ export default function App() {
 <Route
   path="/portfolio"
   element={<Progress />}
+/>
+
+<Route
+  path="/placement-drives"
+  element={<UpcomingDrivesPage />}
 />
 
     </Routes>

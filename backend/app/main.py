@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -9,10 +11,25 @@ from app.routes.resume_data import router as resume_data_router
 from app.routes.skills import router as skills_router
 from app.routes.career import router as career_router
 from app.routes.learning_path import router as learning_path_router
+from app.routes.jobs import router as jobs_router
+from app.routes.placement_drives import router as placement_drives_router
+
+from app.scheduler import start_scheduler, stop_scheduler
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Starts the Placement Drives 24-hour sync job (see scheduler.py).
+    # Runs once immediately on startup, then every 24 hours after that.
+    start_scheduler()
+    yield
+    stop_scheduler()
+
 
 app = FastAPI(
     title="CareerLens AI API",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 # CORS
@@ -35,6 +52,8 @@ app.include_router(resume_data_router)
 app.include_router(skills_router)
 app.include_router(career_router)
 app.include_router(learning_path_router)
+app.include_router(jobs_router)
+app.include_router(placement_drives_router)
 
 
 @app.get("/")

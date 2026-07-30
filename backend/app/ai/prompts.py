@@ -169,6 +169,64 @@ Frontend Developer
 - Return ONLY valid JSON.
 """
 
+def profile_resume_analysis_prompt(resume_text: str) -> str:
+    return f"""
+You are CareerLens AI, an expert resume reviewer and ATS (Applicant
+Tracking System) analyst.
+
+Analyze the following resume text and return a complete, structured
+analysis.
+
+Resume Text:
+
+{resume_text}
+
+Return ONLY valid JSON in exactly this structure:
+
+{{
+    "resume_score": 0,
+    "ats_score": 0,
+    "keyword_score": 0,
+    "formatting_score": 0,
+    "grammar_score": 0,
+    "missing_skills": [],
+    "strengths": [],
+    "weaknesses": [],
+    "ai_summary": "",
+
+    "skills": [],
+    "education": [],
+    "experience": [],
+    "projects": [],
+    "certifications": [],
+    "languages": [],
+
+    "suggestions": [
+        {{
+            "title": "",
+            "description": "",
+            "priority": "High"
+        }}
+    ]
+}}
+
+Rules:
+
+- All *_score fields must be integers between 0 and 100.
+- missing_skills: important skills for this candidate's apparent field that are absent from the resume (maximum 8).
+- strengths / weaknesses: short, specific bullet points (maximum 5 each).
+- ai_summary: 2-3 sentences, plain language, no markdown.
+- skills: every distinct technical skill actually found in the resume text.
+- education: list of objects like {{"degree": "", "institution": "", "year": ""}}.
+- experience: list of objects like {{"role": "", "company": "", "duration": "", "description": ""}} for internships/jobs found in the resume.
+- projects: list of objects like {{"name": "", "description": ""}}.
+- certifications: list of objects like {{"name": "", "organization": "", "year": ""}}.
+- languages: spoken/written languages if explicitly mentioned, otherwise an empty list - never guess.
+- suggestions: 3-5 concrete, actionable improvements. priority must be "High", "Medium", or "Low".
+- Never invent information that is not present in the resume text.
+- Return ONLY valid JSON, no markdown fences, no commentary.
+"""
+
 def skill_analysis_prompt(profile):
 
     return f"""
@@ -230,60 +288,73 @@ Rules:
 """
 
 
-def profile_resume_analysis_prompt(resume_text: str) -> str:
+def job_match_explanation_prompt(
+    profile: dict,
+    job: dict,
+    matched_skills: list,
+    missing_skills: list,
+    match_percentage: int,
+) -> str:
+    """
+    IMPORTANT - scope of this prompt:
+
+    The AI Match percentage, the ranking of jobs, and the exact lists of
+    matched/missing skills below are ALL already calculated by a
+    deterministic matching engine before this prompt ever runs (see
+    services/job_matching_service.py). Gemini is not used to generate
+    jobs, calculate match scores, filter jobs, or rank jobs anywhere in
+    this feature - it is only ever used to WRITE the three short pieces
+    of narrative text below, grounded in numbers/lists it is given, not
+    numbers/lists it invents.
+    """
+
     return f"""
-You are CareerLens AI, an expert resume reviewer and ATS (Applicant
-Tracking System) analyst.
+You are CareerLens AI, an expert career mentor.
 
-Analyze the following resume text and return a complete, structured
-analysis.
+A separate recommendation engine (NOT you) has already calculated that
+this student is a {match_percentage}% match for the job below, and has
+already determined exactly which required skills the student has and
+which they are missing. Do NOT recalculate, question, second-guess, or
+restate a different match percentage or skill list - only explain the
+ones given to you.
 
-Resume Text:
+Student Profile:
+{profile}
 
-{resume_text}
+Job:
+{job}
 
-Return ONLY valid JSON in exactly this structure:
+Skills The Student Already Has (for this job): {matched_skills}
+Skills The Student Is Missing (for this job): {missing_skills}
+Match Percentage (already calculated - do not change): {match_percentage}%
+
+Return ONLY valid JSON.
 
 {{
-    "resume_score": 0,
-    "ats_score": 0,
-    "keyword_score": 0,
-    "formatting_score": 0,
-    "grammar_score": 0,
-    "missing_skills": [],
-    "strengths": [],
-    "weaknesses": [],
-    "ai_summary": "",
-
-    "skills": [],
-    "education": [],
-    "experience": [],
-    "projects": [],
-    "certifications": [],
-    "languages": [],
-
-    "suggestions": [
-        {{
-            "title": "",
-            "description": "",
-            "priority": "High"
-        }}
+    "why_this_job_matches": "",
+    "missing_skill_explanation": "",
+    "suggested_next_steps": [
+        ""
     ]
 }}
 
 Rules:
 
-- All *_score fields must be integers between 0 and 100.
-- missing_skills: important skills for this candidate's apparent field that are absent from the resume (maximum 8).
-- strengths / weaknesses: short, specific bullet points (maximum 5 each).
-- ai_summary: 2-3 sentences, plain language, no markdown.
-- skills: every distinct technical skill actually found in the resume text.
-- education: list of objects like {{"degree": "", "institution": "", "year": ""}}.
-- experience: list of objects like {{"role": "", "company": "", "duration": "", "description": ""}} for internships/jobs found in the resume.
-- projects: list of objects like {{"name": "", "description": ""}}.
-- certifications: list of objects like {{"name": "", "organization": "", "year": ""}}.
-- languages: spoken/written languages if explicitly mentioned, otherwise an empty list - never guess.
-- suggestions: 3-5 concrete, actionable improvements. priority must be "High", "Medium", or "Low".
-- Never invent information that is not present in the resume text.
-- Return ONLY valid JSON, no markdown fences, no commentary.
+- why_this_job_matches should be a concise, encouraging paragraph (2–4 sentences) explaining why the student's existing skills, education and interests make them a good fit for this specific role and company - grounded only in the matched skills and profile given above.
+
+- missing_skill_explanation should be a concise paragraph (2–3 sentences) explaining, in plain language, why the missing skills listed above matter for this specific role. If the missing skills list is empty, say so encouragingly instead of inventing gaps.
+
+- suggested_next_steps must contain exactly 3–5 short, actionable steps the student can take to close the gap and become a stronger candidate for this specific role.
+
+- Do NOT invent additional missing skills beyond the ones explicitly listed above.
+
+- Do NOT invent additional matched skills beyond the ones explicitly listed above.
+
+- Do NOT change, recalculate, or restate a different match percentage anywhere in your response.
+
+- Return ONLY valid JSON.
+
+Do NOT use markdown.
+Do NOT use ```json.
+Do NOT write explanations outside JSON.
 """
