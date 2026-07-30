@@ -56,7 +56,7 @@ const menuItems = [
   },
   {
   icon: Briefcase,
-  title: "Placement Drives",
+  title: "Upcoming Drives",
   path: "/placement-drives",
 },
   {
