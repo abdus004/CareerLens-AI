@@ -12,6 +12,10 @@ import LearningPath from "./pages/LearningPath";
 import CareerOpportunities from "./pages/Opportunities";
 import Settings from "./pages/Settings";
 import MockInterview from "./pages/MockInterview";
+import InterviewMode from "./pages/InterviewMode";
+import ChatInterview from "./pages/ChatInterview";
+import VoiceInterview from "./pages/VoiceInterview";
+import InterviewResult from "./pages/InterviewResult";
 import Assessments from "./pages/Assessments";
 import Progress from "./pages/Portfolio";
 import UpcomingDrivesPage from "./pages/UpcomingDrives";
@@ -64,6 +68,26 @@ export default function App() {
 <Route
   path="/mock-interview"
   element={<MockInterview />}
+/>
+
+<Route
+  path="/mock-interview/mode"
+  element={<InterviewMode />}
+/>
+
+<Route
+  path="/mock-interview/chat/:interviewId"
+  element={<ChatInterview />}
+/>
+
+<Route
+  path="/mock-interview/voice/:interviewId"
+  element={<VoiceInterview />}
+/>
+
+<Route
+  path="/mock-interview/result/:interviewId"
+  element={<InterviewResult />}
 />
 
 <Route

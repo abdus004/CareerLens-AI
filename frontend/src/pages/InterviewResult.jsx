@@ -1,0 +1,242 @@
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import DashboardLayout from "../components/dashboard/DashboardLayout";
+import api from "../services/api";
+import { getCurrentUser } from "../utils/session";
+import {
+  RefreshCw,
+  CheckCircle2,
+  AlertTriangle,
+  Sparkles,
+  RotateCcw,
+  LogOut,
+} from "lucide-react";
+
+const CATEGORY_FIELDS = [
+  { key: "technical_score", label: "Technical Knowledge" },
+  { key: "communication_score", label: "Communication" },
+  { key: "english_score", label: "English" },
+  { key: "confidence_score", label: "Confidence" },
+  { key: "vocabulary_score", label: "Vocabulary" },
+];
+
+function scoreColor(score) {
+  if (score >= 75) return "text-green-400";
+  if (score >= 50) return "text-orange-400";
+  return "text-red-400";
+}
+
+function ScoreRing({ score }) {
+  const radius = 70;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+
+  return (
+    <div className="relative w-48 h-48 flex items-center justify-center">
+      <svg className="w-48 h-48 -rotate-90">
+        <circle cx="96" cy="96" r={radius} stroke="currentColor" strokeWidth="12" fill="none" className="text-white/10" />
+        <circle
+          cx="96"
+          cy="96"
+          r={radius}
+          stroke="url(#scoreGradient)"
+          strokeWidth="12"
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-all duration-1000"
+        />
+        <defs>
+          <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#8b5cf6" />
+            <stop offset="100%" stopColor="#06b6d4" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div className="absolute flex flex-col items-center">
+        <span className="text-4xl font-bold text-white">{score}</span>
+        <span className="text-gray-400 text-sm">/ 100</span>
+      </div>
+    </div>
+  );
+}
+
+export default function InterviewResult() {
+  const { interviewId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const user = getCurrentUser();
+
+  const mode = location.state?.mode || "chat";
+
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [retaking, setRetaking] = useState(false);
+
+  useEffect(() => {
+    const loadResult = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await api.get(`/mock-interview/${interviewId}/result`);
+        setResult(response.data?.data);
+      } catch (err) {
+        console.error("Error loading interview result:", err);
+        setError(
+          err?.response?.data?.detail ||
+            "We couldn't load your results. Please try again."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadResult();
+  }, [interviewId]);
+
+  const handleRetake = async () => {
+    if (!user?.email) return;
+
+    try {
+      setRetaking(true);
+      const response = await api.post(`/mock-interview/${interviewId}/retake`, {
+        email: user.email,
+      });
+      const newInterviewId = response.data?.data?.interview_id;
+      navigate(`/mock-interview/${mode}/${newInterviewId}`);
+    } catch (err) {
+      console.error("Error retaking interview:", err);
+      setError(
+        err?.response?.data?.detail ||
+          "We couldn't start a new attempt. Please try again."
+      );
+      setRetaking(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-12 flex flex-col items-center justify-center gap-4">
+          <RefreshCw className="text-cyan-400 animate-spin" size={36} />
+          <p className="text-gray-300 text-lg">Evaluating your interview...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error || !result) {
+    return (
+      <DashboardLayout>
+        <div className="rounded-3xl border border-red-500/30 bg-red-500/5 p-12 flex flex-col items-center justify-center gap-4">
+          <p className="text-red-300 text-lg text-center">{error}</p>
+          <button
+            onClick={() => navigate("/mock-interview")}
+            className="px-5 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 font-medium hover:bg-red-500/20"
+          >
+            Back to Setup
+          </button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold text-white">Interview Result</h1>
+        <p className="text-gray-400 mt-2">
+          Here's how you performed, with feedback generated by AI.
+        </p>
+      </div>
+
+      {/* Overall Score */}
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-10 flex flex-col items-center mb-8">
+        <ScoreRing score={result.overall_score ?? 0} />
+        <p className="text-gray-400 mt-4">Overall Score</p>
+      </div>
+
+      {/* Category Scores */}
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-8 mb-8">
+        <h2 className="text-2xl font-bold text-white mb-6">Category Scores</h2>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-5">
+          {CATEGORY_FIELDS.map(({ key, label }) => {
+            const score = result[key] ?? 0;
+            return (
+              <div key={key} className="rounded-2xl border border-white/10 bg-[#0B1120] p-5 text-center">
+                <p className={`text-3xl font-bold ${scoreColor(score)}`}>{score}</p>
+                <p className="text-gray-400 text-sm mt-2">{label}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6 mb-8">
+        {/* Strengths */}
+        <div className="rounded-3xl border border-green-500/20 bg-green-500/5 p-8">
+          <h2 className="text-xl font-bold text-white mb-5 flex items-center gap-2">
+            <CheckCircle2 className="text-green-400" size={22} />
+            Strengths
+          </h2>
+
+          <div className="space-y-3">
+            {(result.strengths || []).map((item, i) => (
+              <p key={i} className="text-gray-300 leading-7">
+                • {item}
+              </p>
+            ))}
+          </div>
+        </div>
+
+        {/* Areas to Improve */}
+        <div className="rounded-3xl border border-orange-500/20 bg-orange-500/5 p-8">
+          <h2 className="text-xl font-bold text-white mb-5 flex items-center gap-2">
+            <AlertTriangle className="text-orange-400" size={22} />
+            Areas to Improve
+          </h2>
+
+          <div className="space-y-3">
+            {(result.areas_to_improve || []).map((item, i) => (
+              <p key={i} className="text-gray-300 leading-7">
+                • {item}
+              </p>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Final Recommendation */}
+      <div className="rounded-3xl border border-cyan-500/20 bg-cyan-500/5 p-8 mb-8">
+        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <Sparkles className="text-cyan-400" size={22} />
+          Final AI Recommendation
+        </h2>
+        <p className="text-gray-300 leading-8">{result.final_recommendation}</p>
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-4">
+        <button
+          onClick={handleRetake}
+          disabled={retaking}
+          className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-cyan-500 text-white font-bold hover:opacity-90 transition disabled:opacity-60 flex items-center justify-center gap-2"
+        >
+          {retaking ? <RefreshCw className="animate-spin" size={18} /> : <RotateCcw size={18} />}
+          Retake Interview
+        </button>
+
+        <button
+          onClick={() => navigate("/mock-interview")}
+          className="flex-1 py-4 rounded-2xl border border-white/10 text-gray-300 hover:bg-white/5 transition flex items-center justify-center gap-2 font-semibold"
+        >
+          <LogOut size={18} />
+          Exit
+        </button>
+      </div>
+    </DashboardLayout>
+  );
+}

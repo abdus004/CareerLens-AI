@@ -13,6 +13,7 @@ from app.routes.career import router as career_router
 from app.routes.learning_path import router as learning_path_router
 from app.routes.jobs import router as jobs_router
 from app.routes.placement_drives import router as placement_drives_router
+from app.routes.mock_interview import router as mock_interview_router
 
 from app.scheduler import start_scheduler, stop_scheduler
 
@@ -54,6 +55,7 @@ app.include_router(career_router)
 app.include_router(learning_path_router)
 app.include_router(jobs_router)
 app.include_router(placement_drives_router)
+app.include_router(mock_interview_router)
 
 
 @app.get("/")

@@ -358,3 +358,149 @@ Do NOT use markdown.
 Do NOT use ```json.
 Do NOT write explanations outside JSON.
 """
+
+
+def interview_question_selection_prompt(
+    candidate_questions: list,
+    interview_type: str,
+    target_role: str,
+    difficulty: str,
+    num_questions: int,
+) -> str:
+    """
+    IMPORTANT - scope of this prompt (Gemini Call 1 of 2 for Mock
+    Interview):
+
+    Every candidate question below already exists in the pre-curated
+    question_bank table and was already filtered to the right
+    interview_type/role/difficulty by deterministic backend code (see
+    services/question_bank_service.py) BEFORE this prompt ever runs.
+    Gemini is not used to write new interview questions, judge
+    difficulty, or decide topic relevance - it is only ever used to
+    CHOOSE a well-spread subset of exactly num_questions ids from the
+    exact list given below, so that one interview doesn't feel like a
+    random unordered dump of similar questions. If this call fails or
+    returns something invalid, the backend falls back to a plain
+    random sample from this same list - an interview must always be
+    able to start.
+    """
+
+    numbered = "\n".join(
+        f'{q["id"]} :: {q["question_text"]}' for q in candidate_questions
+    )
+
+    return f"""
+You are CareerLens AI, curating a mock interview for a student.
+
+Interview Type: {interview_type}
+Target Role: {target_role or "General (no specific role)"}
+Difficulty: {difficulty}
+Number Of Questions Needed: {num_questions}
+
+Below is the ONLY pool of questions you are allowed to choose from.
+Each line is "id :: question text". You must select IDs only from this
+exact list - never invent a new id, never rewrite or paraphrase a
+question's text.
+
+{numbered}
+
+Return ONLY valid JSON.
+
+{{
+    "selected_question_ids": [
+        ""
+    ]
+}}
+
+Rules:
+
+- selected_question_ids must contain EXACTLY {num_questions} ids, and every id must be copied exactly as it appears before the "::" above.
+- Do NOT repeat the same id twice.
+- Do NOT select two or more questions that are essentially asking the same thing - prefer breadth across different sub-topics over near-duplicates.
+- Order the ids so the interview has a sensible flow (e.g. broader/foundational questions before narrower/advanced ones), not necessarily the order they appeared above.
+- Do NOT invent a question id that is not in the list above.
+- Return ONLY valid JSON.
+
+Do NOT use markdown.
+Do NOT use ```json.
+Do NOT write explanations outside JSON.
+"""
+
+
+def interview_evaluation_prompt(
+    interview_type: str,
+    target_role: str,
+    difficulty: str,
+    answers: list,
+) -> str:
+    """
+    IMPORTANT - scope of this prompt (Gemini Call 2 of 2 for Mock
+    Interview, and the ONLY other Gemini call this feature makes):
+
+    Called exactly once, after the student has finished the entire
+    interview - never after each individual question. Gemini's job
+    here is purely evaluative: score and give feedback on answers that
+    already exist. It does not choose which questions were asked (that
+    was Call 1) and it never runs mid-interview.
+    """
+
+    transcript = "\n\n".join(
+        f'Question {a["question_number"]}: {a["question_text"]}\n'
+        f'Answer: {"[SKIPPED - no answer given]" if a.get("skipped") else (a.get("answer_text") or "[No answer given]")}\n'
+        f'Time Taken: {a.get("time_taken_seconds", 0)} seconds'
+        for a in answers
+    )
+
+    return f"""
+You are CareerLens AI, an experienced technical and HR interviewer giving honest, constructive feedback after a completed mock interview.
+
+Interview Type: {interview_type}
+Target Role: {target_role or "General (no specific role)"}
+Difficulty: {difficulty}
+Total Questions: {len(answers)}
+
+Full Interview Transcript (questions, the student's answers, and time taken):
+
+{transcript}
+
+Return ONLY valid JSON.
+
+{{
+    "overall_score": 0,
+    "technical_knowledge_score": 0,
+    "communication_score": 0,
+    "english_score": 0,
+    "confidence_score": 0,
+    "vocabulary_score": 0,
+    "per_question_feedback": [
+        {{
+            "question_number": 0,
+            "score": 0,
+            "feedback": ""
+        }}
+    ],
+    "strengths": [
+        ""
+    ],
+    "areas_to_improve": [
+        ""
+    ],
+    "final_recommendation": ""
+}}
+
+Rules:
+
+- Every score (overall_score, technical_knowledge_score, communication_score, english_score, confidence_score, vocabulary_score, and each per-question score) must be an integer between 0 and 100.
+- overall_score should reasonably reflect the average quality across all answers, weighted toward technical_knowledge_score for a Technical interview and toward communication_score for an HR/Behavioral interview.
+- A skipped question must receive a low score (0-20) and feedback that plainly notes it was skipped - do not penalize the rest of the interview's scores more than that one question's score already reflects.
+- per_question_feedback must contain exactly one entry per question above, in the same order, each with concise (1-3 sentence), specific, practical feedback - not generic praise.
+- strengths must contain 2-5 short, specific, genuine strengths actually observed in the answers given.
+- areas_to_improve must contain 2-5 short, specific, actionable areas to work on - not vague criticism.
+- final_recommendation must be a concise (2-4 sentence) overall verdict on the student's readiness for this type of interview at this difficulty, written directly to the student, in an encouraging but honest tone.
+- Base every score and comment only on the transcript given above - do not assume information about the student that isn't in it.
+- Return ONLY valid JSON.
+
+Do NOT use markdown.
+Do NOT use ```json.
+Do NOT write explanations outside JSON.
+"""
