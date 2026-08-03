@@ -17,6 +17,9 @@ import ChatInterview from "./pages/ChatInterview";
 import VoiceInterview from "./pages/VoiceInterview";
 import InterviewResult from "./pages/InterviewResult";
 import Assessments from "./pages/Assessments";
+import AssessmentTest from "./pages/AssessmentTest";
+import AssessmentResult from "./pages/AssessmentResult";
+import Certificates from "./pages/Certificates";
 import Progress from "./pages/Portfolio";
 import UpcomingDrivesPage from "./pages/UpcomingDrives";
 
@@ -93,6 +96,21 @@ export default function App() {
 <Route
   path="/assessments"
   element={<Assessments />}
+/>
+
+<Route
+  path="/assessments/test/:assessmentId"
+  element={<AssessmentTest />}
+/>
+
+<Route
+  path="/assessments/result/:assessmentId"
+  element={<AssessmentResult />}
+/>
+
+<Route
+  path="/certificates"
+  element={<Certificates />}
 />
 
 <Route

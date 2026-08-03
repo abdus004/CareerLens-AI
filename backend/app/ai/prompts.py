@@ -427,6 +427,84 @@ Do NOT write explanations outside JSON.
 """
 
 
+def skill_assessment_feedback_prompt(
+    category: str,
+    difficulty: str,
+    percentage: float,
+    correct_count: int,
+    incorrect_count: int,
+    skipped_count: int,
+    topic_performance: list,
+    incorrect_topics: list,
+    time_taken_seconds: int,
+    duration_seconds: int,
+) -> str:
+    """
+    IMPORTANT - scope of this prompt (the ONLY Gemini call the Skill
+    Assessment feature makes):
+
+    Every number below - the score, the correct/incorrect/skipped
+    counts, and the topic-wise percentages - was already computed by
+    deterministic backend code (see services/assessment_scoring_service.py)
+    BEFORE this prompt ever runs. Gemini is never used to grade
+    answers, decide pass/fail, or recompute the percentage - it is only
+    ever used to WRITE three short, practical lists (strengths,
+    weak_areas, recommendations) grounded in the numbers given here. If
+    this call fails for any reason, the assessment's score still stands
+    on its own - see routes/skill_assessment.py.
+    """
+
+    topic_lines = "\n".join(
+        f'- {t["topic"]}: {t["correct"]}/{t["total"]} correct ({t["percentage"]}%)'
+        for t in topic_performance
+    )
+
+    return f"""
+You are CareerLens AI, an expert technical mentor giving concise, practical feedback after a completed skill assessment.
+
+Assessment Category: {category}
+Difficulty: {difficulty}
+Overall Percentage (already calculated - do not change): {percentage}%
+Correct: {correct_count}
+Incorrect: {incorrect_count}
+Skipped: {skipped_count}
+Time Used: {time_taken_seconds} of {duration_seconds} seconds allotted
+
+Topic-Wise Performance (already calculated - do not change):
+{topic_lines or "- No topic data available."}
+
+Topics With At Least One Incorrect Answer: {", ".join(incorrect_topics) if incorrect_topics else "None"}
+
+Return ONLY valid JSON.
+
+{{
+    "strengths": [
+        ""
+    ],
+    "weak_areas": [
+        ""
+    ],
+    "recommendations": [
+        ""
+    ]
+}}
+
+Rules:
+
+- strengths must list 2-5 short, specific topics or skills the student is genuinely strong in, based only on the topic performance above (favor topics at or near 100%). If nothing stands out clearly, give general encouragement based on the overall percentage instead of inventing a strength.
+- weak_areas must list 1-5 short, specific topics the student should focus on next, based only on the topic performance and incorrect-topics data above. If the student scored 100%, return an empty list rather than inventing a weakness.
+- recommendations must list 3-5 concise, actionable study suggestions (e.g. "Practice try/except scenarios", "Revisit JOIN types with worked examples") that directly address the weak areas identified above.
+- Do NOT recalculate, question, or restate a different percentage, score, or pass/fail result anywhere in your response.
+- Do NOT invent topics that are not present in the topic performance data above.
+- Keep every item short (under 12 words) and practical - no generic filler like "keep practicing".
+- Return ONLY valid JSON.
+
+Do NOT use markdown.
+Do NOT use ```json.
+Do NOT write explanations outside JSON.
+"""
+
+
 def interview_evaluation_prompt(
     interview_type: str,
     target_role: str,
