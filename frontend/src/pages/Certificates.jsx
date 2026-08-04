@@ -1,131 +1,258 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import api from "../services/api";
 import { getCurrentUser } from "../utils/session";
-import { Award, Download, RefreshCw } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 
-const CATEGORY_LABELS = {
-  "Programming": "Programming",
-  "Aptitude": "Aptitude",
-  "Reasoning": "Reasoning",
-  "SQL": "SQL",
-  "Python": "Python",
-  "Java": "Java",
-  "AI/ML": "AI / ML",
-};
+import MyCertificatesSection from "../components/certificates/MyCertificatesSection";
+import CareerLensCertificatesSection from "../components/certificates/CareerLensCertificatesSection";
+import RecommendedCertificationsSection from "../components/certificates/RecommendedCertificationsSection";
+import UploadCertificateModal from "../components/certificates/UploadCertificateModal";
+import CertificateDetailsModal from "../components/certificates/CertificateDetailsModal";
 
 export default function Certificates() {
   const user = getCurrentUser();
+  const email = user?.email;
 
-  const [certificates, setCertificates] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // --- Section 1: My Certificates -----------------------------------
+  const [myCertificates, setMyCertificates] = useState([]);
+  const [myCertsLoading, setMyCertsLoading] = useState(true);
+  const [myCertsError, setMyCertsError] = useState(null);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+
+  // --- Section 2: CareerLens Certificates -----------------------------
+  const [clCertificates, setClCertificates] = useState([]);
+  const [clLoading, setClLoading] = useState(true);
+  const [clError, setClError] = useState(null);
+
+  // --- Section 3: Recommended Certifications --------------------------
+  const [recReady, setRecReady] = useState(true);
+  const [recMessage, setRecMessage] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
+  const [recLoading, setRecLoading] = useState(true);
+  const [recError, setRecError] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
+  const [detailsRec, setDetailsRec] = useState(null);
+  const [completeRec, setCompleteRec] = useState(null);
+
+  const [actionError, setActionError] = useState(null);
+
+  const loadMyCertificates = useCallback(async () => {
+    if (!email) {
+      setMyCertsLoading(false);
+      return;
+    }
+    try {
+      setMyCertsLoading(true);
+      setMyCertsError(null);
+      const response = await api.get("/certificates/my", { params: { email } });
+      setMyCertificates(response.data?.data || []);
+    } catch (err) {
+      console.error("Error loading My Certificates:", err);
+      setMyCertsError(
+        err?.response?.data?.detail ||
+          "We couldn't load your certificates. Please try again."
+      );
+    } finally {
+      setMyCertsLoading(false);
+    }
+  }, [email]);
+
+  const loadCareerLensCertificates = useCallback(async () => {
+    if (!email) {
+      setClLoading(false);
+      return;
+    }
+    try {
+      setClLoading(true);
+      setClError(null);
+      const response = await api.get("/certificates/", { params: { email } });
+      setClCertificates(response.data?.data || []);
+    } catch (err) {
+      console.error("Error loading CareerLens certificates:", err);
+      setClError(
+        err?.response?.data?.detail ||
+          "We couldn't load your certificates. Please try again."
+      );
+    } finally {
+      setClLoading(false);
+    }
+  }, [email]);
+
+  const loadRecommendations = useCallback(async () => {
+    if (!email) {
+      setRecLoading(false);
+      return;
+    }
+    try {
+      setRecLoading(true);
+      setRecError(null);
+      const response = await api.get("/certificates/recommendations", {
+        params: { email },
+      });
+      setRecReady(Boolean(response.data?.ready));
+      setRecMessage(response.data?.message || null);
+      setRecommendations(response.data?.recommendations || []);
+    } catch (err) {
+      console.error("Error loading recommendations:", err);
+      setRecError(
+        err?.response?.data?.detail ||
+          "We couldn't load your certification recommendations. Please try again."
+      );
+    } finally {
+      setRecLoading(false);
+    }
+  }, [email]);
 
   useEffect(() => {
-    const loadCertificates = async () => {
-      if (!user?.email) {
-        setLoading(false);
-        return;
-      }
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await api.get("/certificates/", {
-          params: { email: user.email },
-        });
-        setCertificates(response.data?.data || []);
-      } catch (err) {
-        console.error("Error loading certificates:", err);
-        setError(
-          err?.response?.data?.detail ||
-            "We couldn't load your certificates. Please try again."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadCertificates();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    loadMyCertificates();
+    loadCareerLensCertificates();
+    loadRecommendations();
+  }, [loadMyCertificates, loadCareerLensCertificates, loadRecommendations]);
+
+  const handleUploadCertificate = async (fields) => {
+    const formData = new FormData();
+    formData.append("email", email);
+    formData.append("certificate_name", fields.certificate_name);
+    formData.append("provider", fields.provider);
+    formData.append("issue_date", fields.issue_date);
+    formData.append("category", fields.category);
+    formData.append("file", fields.file);
+
+    await api.post("/certificates/my", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    setUploadModalOpen(false);
+    loadMyCertificates();
+  };
+
+  const handleProgressChange = async (recommendationId, progressPercent) => {
+    const previous = recommendations;
+    setUpdatingId(recommendationId);
+    setActionError(null);
+
+    // Optimistic update so the select feels instant.
+    setRecommendations((prev) =>
+      prev.map((rec) =>
+        rec.id === recommendationId
+          ? { ...rec, progress_percent: progressPercent }
+          : rec
+      )
+    );
+
+    try {
+      await api.put(`/certificates/recommendations/${recommendationId}/progress`, {
+        email,
+        progress_percent: progressPercent,
+      });
+    } catch (err) {
+      console.error("Error updating progress:", err);
+      setRecommendations(previous);
+      setActionError(
+        err?.response?.data?.detail ||
+          "We couldn't update your progress. Please try again."
+      );
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleCompleteCertification = async (fields) => {
+    const formData = new FormData();
+    formData.append("email", email);
+    formData.append("certificate_name", fields.certificate_name);
+    formData.append("provider", fields.provider);
+    formData.append("issue_date", fields.issue_date);
+    formData.append("file", fields.file);
+
+    await api.post(
+      `/certificates/recommendations/${completeRec.id}/complete`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+
+    setCompleteRec(null);
+    loadMyCertificates();
+    loadRecommendations();
+  };
 
   return (
     <DashboardLayout>
-      {/* Header */}
-      <div className="mb-8">
+      <div className="mb-2">
         <h1 className="text-4xl font-bold text-white">Certificates</h1>
         <p className="text-gray-400 mt-2">
-          Certificates you've earned by passing Skill Assessments.
+          Your certification dashboard - uploaded certificates, CareerLens
+          achievements, and AI-powered recommendations, all in one place.
         </p>
       </div>
 
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
-        {loading ? (
-          <div className="flex items-center gap-3 text-gray-400">
-            <RefreshCw className="animate-spin" size={18} />
-            Loading your certificates...
-          </div>
-        ) : error ? (
-          <p className="text-red-400">{error}</p>
-        ) : certificates.length === 0 ? (
-          <div className="text-center py-12">
-            <Award className="text-gray-600 mx-auto mb-4" size={48} />
-            <p className="text-gray-400">
-              You haven't earned any certificates yet.
-            </p>
-            <p className="text-gray-500 text-sm mt-2">
-              Score 80% or higher on a Skill Assessment to unlock a certificate.
-            </p>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-6">
-            {certificates.map((cert) => {
-              const categoryLabel =
-                CATEGORY_LABELS[cert.category] || cert.category;
-              return (
-                <div
-                  key={cert.id}
-                  className="rounded-2xl border border-white/10 bg-[#0B1120] p-6"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 flex items-center justify-center">
-                      <Award size={22} className="text-white" />
-                    </div>
-                    <span className="text-green-400 text-2xl font-bold">
-                      {cert.score}%
-                    </span>
-                  </div>
+      {actionError && (
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 flex items-start gap-3">
+          <AlertTriangle className="text-red-400 flex-shrink-0 mt-0.5" size={18} />
+          <p className="text-red-300 text-sm flex-1">{actionError}</p>
+          <button onClick={() => setActionError(null)}>
+            <X className="text-red-300" size={16} />
+          </button>
+        </div>
+      )}
 
-                  <h3 className="text-lg font-bold text-white">
-                    {categoryLabel} Assessment
-                  </h3>
-                  <p className="text-gray-400 mt-1">{cert.difficulty}</p>
-                  <p className="text-gray-500 text-sm mt-3">
-                    Issued{" "}
-                    {new Date(cert.issued_at).toLocaleDateString(undefined, {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </p>
-                  <p className="text-gray-600 text-xs mt-1">
-                    Certificate ID: {cert.certificate_id}
-                  </p>
-
-                  <a
-                    href={cert.pdf_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-6 w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 text-white font-semibold hover:opacity-90 transition flex items-center justify-center gap-2"
-                  >
-                    <Download size={16} />
-                    Download Certificate
-                  </a>
-                </div>
-              );
-            })}
-          </div>
-        )}
+      <div className="grid lg:grid-cols-2 gap-5 items-stretch">
+        <MyCertificatesSection
+          certificates={myCertificates}
+          loading={myCertsLoading}
+          error={myCertsError}
+          onUploadClick={() => setUploadModalOpen(true)}
+        />
+        <CareerLensCertificatesSection
+          certificates={clCertificates}
+          loading={clLoading}
+          error={clError}
+        />
       </div>
+
+      <RecommendedCertificationsSection
+        ready={recReady}
+        message={recMessage}
+        recommendations={recommendations}
+        loading={recLoading}
+        error={recError}
+        updatingId={updatingId}
+        onProgressChange={handleProgressChange}
+        onViewDetails={(rec) => setDetailsRec(rec)}
+        onCompleteClick={(rec) => setCompleteRec(rec)}
+        onRetry={loadRecommendations}
+      />
+
+      {uploadModalOpen && (
+        <UploadCertificateModal
+          title="Upload Certificate"
+          showCategory
+          submitLabel="Upload Certificate"
+          onClose={() => setUploadModalOpen(false)}
+          onSubmit={handleUploadCertificate}
+        />
+      )}
+
+      {detailsRec && (
+        <CertificateDetailsModal
+          recommendation={detailsRec}
+          onClose={() => setDetailsRec(null)}
+        />
+      )}
+
+      {completeRec && (
+        <UploadCertificateModal
+          title="Complete Certification"
+          showCategory={false}
+          initialName={completeRec.certificate_name}
+          initialProvider={completeRec.provider}
+          lockNameAndProvider
+          submitLabel="Add to My Certificates"
+          onClose={() => setCompleteRec(null)}
+          onSubmit={handleCompleteCertification}
+        />
+      )}
     </DashboardLayout>
   );
 }

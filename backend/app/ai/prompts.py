@@ -505,6 +505,75 @@ Do NOT write explanations outside JSON.
 """
 
 
+def certificate_recommendation_prompt(profile: dict) -> str:
+    """
+    IMPORTANT - scope of this prompt (the ONLY Gemini call the
+    Certificates module ever makes for a given student, per spec):
+
+    Called exactly once per email, the first time Resume Analysis AND
+    Skill Analysis have both completed - see
+    services/certificate_recommendation_service.py, which persists the
+    result and never calls this again for that email, even after every
+    recommendation has since been completed/removed. Gemini is only
+    ever used to WRITE the five recommendation objects grounded in the
+    already-computed profile data given below - it does not recompute
+    weak_skills, the recommended role, or anything else upstream.
+    """
+
+    return f"""
+You are CareerLens AI, an expert career and certification advisor.
+
+Analyze the student's complete profile and recommend certifications
+that will most directly strengthen their candidacy for their
+recommended career path.
+
+Student Profile (already collected - resume skills, weak skills,
+career goal, recommended role, education and current skill analysis):
+
+{profile}
+
+Return ONLY valid JSON in exactly this structure:
+
+{{
+    "recommendations": [
+        {{
+            "certificate_name": "",
+            "provider": "",
+            "category": "",
+            "difficulty": "",
+            "estimated_duration": "",
+            "description": "",
+            "skills_learned": [],
+            "career_benefits": [],
+            "prerequisites": [],
+            "official_link": ""
+        }}
+    ]
+}}
+
+Rules:
+
+- recommendations must contain EXACTLY 5 objects, ordered from most to least impactful for this specific student.
+- provider must be EXACTLY one of: "Google", "Microsoft Learn", "AWS", "Oracle", "IBM", "Cisco", "Coursera", "MongoDB University", "Meta", "TensorFlow", "DeepLearning.AI", "Python Institute", "Hugging Face", "Udemy", "NPTEL".
+- official_link must be the real, official homepage or course page for that exact certificate, hosted on that provider's own official domain (examples: cloud.google.com, learn.microsoft.com, aws.amazon.com, education.oracle.com, netacad.com, coursera.org, university.mongodb.com, tensorflow.org, deeplearning.ai, pythoninstitute.org, huggingface.co, udemy.com, nptel.ac.in). Never link to a blog, forum, video site, or unofficial reseller.
+- category should be a short subject label such as "Cloud", "Data Science", "Programming", "AI/ML", "Database", "DevOps", "Web Development", "Cybersecurity", matching the certificate's actual subject.
+- difficulty must be one of: "Beginner", "Intermediate", "Advanced".
+- estimated_duration should be realistic, e.g. "4-6 Weeks", "2-3 Months".
+- description must be 1-2 concise, plain-language sentences on what the certificate covers and why it fits this student.
+- skills_learned must contain 3-6 concrete skills this certificate teaches.
+- career_benefits must contain 2-4 short, concrete benefits tied to THIS student's stated career_goal / recommended_role.
+- prerequisites must contain 0-3 short prerequisites; return an empty list if there genuinely are none.
+- Prioritize certificates that directly close the gap between this student's weak_skills / missing gaps and their recommended_role.
+- Do NOT recommend the same certificate twice.
+- Do NOT invent skills or facts that are not reasonably implied by the profile given above.
+- Return ONLY valid JSON, no markdown fences, no commentary.
+
+Do NOT use markdown.
+Do NOT use ```json.
+Do NOT write explanations outside JSON.
+"""
+
+
 def interview_evaluation_prompt(
     interview_type: str,
     target_role: str,
