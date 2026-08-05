@@ -1,7 +1,18 @@
-import { Award, Download, Eye, Plus, RefreshCw, FileText } from "lucide-react";
+import { useState } from "react";
+import {
+  Award,
+  Download,
+  Eye,
+  Plus,
+  RefreshCw,
+  FileText,
+  Trash2,
+  X,
+  AlertTriangle,
+} from "lucide-react";
 
 function formatDate(dateString) {
-  if (!dateString) return "";
+  if (!dateString) return "Issue date not specified";
   return new Date(dateString).toLocaleDateString(undefined, {
     day: "numeric",
     month: "long",
@@ -9,14 +20,60 @@ function formatDate(dateString) {
   });
 }
 
+// Keeps the section from growing indefinitely as more certificates are
+// uploaded - only this inner list scrolls, the header/count/button
+// above it stay fixed. Matches CareerLensCertificatesSection's value so
+// both columns stay visually balanced.
+const LIST_MAX_HEIGHT = 460;
+
 export default function MyCertificatesSection({
   certificates,
   loading,
   error,
   onUploadClick,
+  onDeleteCertificate,
 }) {
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [confirmError, setConfirmError] = useState(null);
+
+  const pendingCert =
+    certificates.find((c) => c.id === confirmDeleteId) || null;
+
+  const closeConfirm = () => {
+    if (deletingId) return;
+    setConfirmDeleteId(null);
+    setConfirmError(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDeleteId) return;
+    try {
+      setDeletingId(confirmDeleteId);
+      setConfirmError(null);
+      await onDeleteCertificate(confirmDeleteId);
+      setConfirmDeleteId(null);
+    } catch (err) {
+      setConfirmError(
+        err?.response?.data?.detail ||
+          "We couldn't delete this certificate. Please try again."
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6 flex flex-col h-full">
+    <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6 flex flex-col">
+      {/* Subtle scrollbar for the certificate list, matching the dark theme. */}
+      <style>{`
+        .cl-cert-scroll::-webkit-scrollbar { width: 6px; }
+        .cl-cert-scroll::-webkit-scrollbar-track { background: transparent; }
+        .cl-cert-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 9999px; }
+        .cl-cert-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+        .cl-cert-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+      `}</style>
+
       <div className="flex items-start justify-between gap-3 mb-1">
         <div>
           <h2 className="text-xl font-semibold text-white">My Certificates</h2>
@@ -44,7 +101,7 @@ export default function MyCertificatesSection({
         Upload Certificate
       </button>
 
-      <div className="mt-5 flex-1 min-h-0">
+      <div className="mt-5">
         {loading ? (
           <div className="flex items-center gap-3 text-gray-400 py-8">
             <RefreshCw className="animate-spin" size={18} />
@@ -60,7 +117,10 @@ export default function MyCertificatesSection({
             </p>
           </div>
         ) : (
-          <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+          <div
+            className="cl-cert-scroll space-y-3 overflow-y-auto pr-1"
+            style={{ maxHeight: LIST_MAX_HEIGHT }}
+          >
             {certificates.map((cert) => (
               <div
                 key={cert.id}
@@ -81,7 +141,7 @@ export default function MyCertificatesSection({
                 </div>
 
                 <p className="text-gray-500 text-xs mt-3">
-                  Issued {formatDate(cert.issue_date)}
+                  {formatDate(cert.issue_date)}
                 </p>
 
                 <div className="flex gap-2 mt-4">
@@ -104,12 +164,84 @@ export default function MyCertificatesSection({
                     <Download size={14} />
                     Download
                   </a>
+                  <button
+                    onClick={() => {
+                      setConfirmDeleteId(cert.id);
+                      setConfirmError(null);
+                    }}
+                    title="Delete certificate"
+                    className="px-3 py-2 rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 transition text-red-300 flex items-center justify-center"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {pendingCert && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          onClick={closeConfirm}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#0b0e1a] p-7"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-11 h-11 rounded-xl bg-red-500/15 border border-red-500/20 flex items-center justify-center text-red-400 flex-shrink-0">
+                <AlertTriangle size={20} />
+              </div>
+              <button
+                onClick={closeConfirm}
+                disabled={Boolean(deletingId)}
+                className="w-9 h-9 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 flex items-center justify-center flex-shrink-0 disabled:opacity-60"
+              >
+                <X size={16} className="text-white" />
+              </button>
+            </div>
+
+            <h2 className="text-lg font-bold text-white">
+              Delete Certificate?
+            </h2>
+            <p className="text-gray-400 text-sm mt-2">
+              Are you sure you want to delete{" "}
+              <span className="text-gray-200 font-medium">
+                {pendingCert.certificate_name}
+              </span>
+              ? This action cannot be undone.
+            </p>
+
+            {confirmError && (
+              <p className="text-red-400 text-sm mt-3">{confirmError}</p>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={closeConfirm}
+                disabled={Boolean(deletingId)}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition text-white text-sm font-medium disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={Boolean(deletingId)}
+                className="flex-1 py-2.5 rounded-xl bg-red-500/90 hover:bg-red-500 transition text-white text-sm font-semibold disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {deletingId ? (
+                  <RefreshCw className="animate-spin" size={16} />
+                ) : (
+                  <Trash2 size={16} />
+                )}
+                {deletingId ? "Deleting..." : "Delete Certificate"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

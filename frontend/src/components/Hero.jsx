@@ -1,199 +1,119 @@
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { ArrowRight, PlayCircle, ChevronDown } from "lucide-react";
+
+import CTAButton from "./CTAButton";
+import BrandIcon from "./BrandIcon";
+import AnimatedHeadline from "./landing/AnimatedHeadline";
+import TypingReveal from "./landing/TypingReveal";
+import CareerLensNetwork from "./landing/CareerLensNetwork";
+
+const headlineLines = [[{ text: "CareerLens" }, { text: "AI", gradient: true }]];
 
 export default function Hero() {
-  const navigate = useNavigate();
   return (
-    <section className="relative min-h-screen bg-[#050816] overflow-hidden flex items-center">
-
-      {/* Background Blur */}
-
-      <div className="absolute top-[-200px] left-[-200px] w-[500px] h-[500px] bg-violet-700/30 blur-[170px] rounded-full"></div>
-
-      <div className="absolute bottom-[-250px] right-[-200px] w-[550px] h-[550px] bg-fuchsia-700/20 blur-[190px] rounded-full"></div>
-
-      {/* Grid */}
-
-      <div
-        className="absolute inset-0 opacity-[0.06]"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-        }}
-      />
-
-      <div className="max-w-7xl mx-auto w-full px-8 lg:px-14 relative z-20 flex justify-center">
-
-        <motion.div
-          initial={{ opacity: 0, y: 80 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            duration: 1,
-          }}
-          className="
-max-w-6xl
-w-full
-text-center
-flex
-flex-col
-items-center
-"
-        >
-
-          {/* Badge */}
-
+    <section id="top" className="relative min-h-screen overflow-hidden flex items-center pt-32 pb-20">
+      <div className="max-w-7xl mx-auto w-full px-6 lg:px-14 relative z-20 grid lg:grid-cols-2 gap-16 items-center">
+        {/* Left: copy + CTAs */}
+        <div className="flex flex-col items-start text-left">
           <motion.div
-            initial={{ opacity: 0, scale: .8 }}
+            initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: .4 }}
-            className="
-              inline-flex
-              items-center
-              gap-2
-              px-5
-              py-2
-              rounded-full
-              bg-white/5
-              border
-              border-violet-500/20
-              backdrop-blur-xl
-              text-violet-300
-              mb-8
-            "
+            transition={{ delay: 0.15 }}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-violet-500/20 backdrop-blur-xl text-violet-300 mb-8 text-sm font-medium"
           >
-
-            🚀 CareerLens AI
-
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-400" />
+            </span>
+            AI-Powered Career Platform
           </motion.div>
 
-          {/* Heading */}
-
-          <motion.h1
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: .7 }}
-            className="
-            text-6xl
-            md:text-8xl
-            font-black
-            leading-[1]
-            tracking-tight
-            text-white
-          "
-          >
-
-            Discover
-
-            <br />
-
-            Your Future
-
-            <br />
-
-            <span
-              className="
-              bg-gradient-to-r
-              from-violet-400
-              via-fuchsia-500
-              to-cyan-400
-              bg-clip-text
-              text-transparent
-            "
+          <div className="flex items-center gap-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.7, rotate: -8 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              transition={{ delay: 0.2, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             >
-              With AI
-            </span>
+              <BrandIcon size={56} className="md:hidden" />
+              <BrandIcon size={72} className="hidden md:flex" />
+            </motion.div>
 
-          </motion.h1>
+            <AnimatedHeadline
+              lines={headlineLines}
+              nowrap
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1] tracking-tight"
+            />
+          </div>
 
-          {/* Description */}
+          <TypingReveal
+            text="Discover Your Future with AI"
+            className="mt-6 text-2xl md:text-3xl font-semibold text-gray-200"
+            startDelay={0.9}
+          />
 
           <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-className="
-mt-8
-text-gray-300
-text-lg
-md:text-xl
-lg:text-[22px]
-leading-9
-max-w-4xl
-mx-auto
-font-normal
-"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.6, duration: 0.7 }}
+            className="mt-6 text-gray-400 text-lg leading-8 max-w-xl"
           >
-
-            CareerLens AI helps students discover the perfect IT career,
-            understand their strengths, explore opportunities,
-            and build a personalized roadmap using Artificial Intelligence.
-
+            Analyze your resume, discover the right career, identify skill
+            gaps, build a personalized learning path, practice interviews,
+            and prepare for opportunities - all in one AI-powered platform.
           </motion.p>
-                    {/* Buttons */}
 
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.2 }}
-            className="
-mt-16
-flex
-justify-center
-items-center
-gap-8
-flex-wrap
-"
+            transition={{ delay: 1.8, duration: 0.6 }}
+            className="mt-10 flex flex-wrap items-center gap-5"
           >
-
-            <button
-  onClick={() => navigate("/login")}
-  className="
-    px-8
-    py-4
-    rounded-2xl
-    bg-gradient-to-r
-    from-violet-600
-    via-fuchsia-600
-    to-purple-600
-    text-white
-    font-semibold
-    text-lg
-    shadow-[0_0_40px_rgba(139,92,246,.45)]
-    hover:scale-105
-    transition-all
-    duration-300
-  "
->
-  Get Started →
-</button>
-
-            <button
-              className="
-                px-8
-                py-4
-                rounded-2xl
-                border
-                border-white/10
-                bg-white/5
-                backdrop-blur-xl
-                text-white
-                font-semibold
-                hover:bg-white/10
-                transition-all
-                duration-300
-              "
-            >
-              Learn More
-            </button>
-
+            <CTAButton to="/signup" icon={ArrowRight}>
+              Get Started
+            </CTAButton>
+            <CTAButton variant="secondary" href="#how-it-works" icon={PlayCircle}>
+              Watch Demo
+            </CTAButton>
           </motion.div>
 
-        </motion.div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2.1, duration: 0.7 }}
+            className="mt-12 flex items-center gap-3 text-sm text-gray-500"
+          >
+            <span className="w-8 h-px bg-gradient-to-r from-violet-500 to-transparent" />
+            Free to get started &middot; No credit card required
+          </motion.div>
+        </div>
 
+        {/* Right: CareerLens ecosystem visual */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.4, duration: 1 }}
+          className="relative h-[380px] md:h-[480px] lg:h-[560px] w-full"
+        >
+          <CareerLensNetwork />
+        </motion.div>
       </div>
 
-      
+      {/* Scroll cue */}
+      <motion.a
+        href="#features"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2.4, duration: 0.8 }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 text-gray-500 hover:text-gray-300 transition-colors"
+      >
+        <span className="text-xs tracking-[0.2em] uppercase">Scroll</span>
+        <motion.span
+          animate={{ y: [0, 6, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <ChevronDown size={18} />
+        </motion.span>
+      </motion.a>
     </section>
   );
 }

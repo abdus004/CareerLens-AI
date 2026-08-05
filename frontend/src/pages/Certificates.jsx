@@ -127,6 +127,16 @@ export default function Certificates() {
     loadMyCertificates();
   };
 
+  const handleDeleteCertificate = async (certificateId) => {
+    // Throws on failure so MyCertificatesSection's confirm dialog can
+    // show the error and keep the certificate visible - state is only
+    // touched here after a real success, no page reload involved.
+    await api.delete(`/certificates/my/${certificateId}`, {
+      params: { email },
+    });
+    setMyCertificates((prev) => prev.filter((c) => c.id !== certificateId));
+  };
+
   const handleProgressChange = async (recommendationId, progressPercent) => {
     const previous = recommendations;
     setUpdatingId(recommendationId);
@@ -203,6 +213,7 @@ export default function Certificates() {
           loading={myCertsLoading}
           error={myCertsError}
           onUploadClick={() => setUploadModalOpen(true)}
+          onDeleteCertificate={handleDeleteCertificate}
         />
         <CareerLensCertificatesSection
           certificates={clCertificates}
@@ -228,6 +239,7 @@ export default function Certificates() {
         <UploadCertificateModal
           title="Upload Certificate"
           showCategory
+          requireDetails={false}
           submitLabel="Upload Certificate"
           onClose={() => setUploadModalOpen(false)}
           onSubmit={handleUploadCertificate}

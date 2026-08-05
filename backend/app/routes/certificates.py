@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.database.db import supabase
@@ -69,10 +71,10 @@ def get_my_certificates(email: str):
 @router.post("/my")
 async def upload_my_certificate(
     email: str = Form(...),
-    certificate_name: str = Form(...),
-    provider: str = Form(...),
-    issue_date: str = Form(...),
-    category: str = Form("Other"),
+    certificate_name: Optional[str] = Form(None),
+    provider: Optional[str] = Form(None),
+    issue_date: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),
     file: UploadFile = File(...),
 ):
     """
@@ -80,8 +82,14 @@ async def upload_my_certificate(
     Certificates. Independent of the Skill Assessment certificate flow
     and of Recommended Certifications - this is purely a user-supplied
     record.
+
+    Certificate File is the ONLY required field. certificate_name,
+    provider, issue_date and category are all optional - user_certificate_service
+    fills in sensible defaults (filename-derived name, "Not specified"
+    provider, NULL issue date, "Other" category) so an empty value here
+    never causes a 422 or a Supabase constraint error.
     """
-    if category not in CERTIFICATE_CATEGORIES:
+    if category is not None and category not in CERTIFICATE_CATEGORIES:
         category = "Other"
 
     if file.content_type not in ALLOWED_UPLOAD_CONTENT_TYPES:
@@ -105,6 +113,24 @@ async def upload_my_certificate(
         return {"success": True, "data": row}
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/my/{certificate_id}")
+def delete_my_certificate(certificate_id: str, email: str):
+    """
+    Deletes one externally uploaded certificate from My Certificates.
+    Ownership is verified server-side in user_certificate_service - a
+    user cannot delete another account's certificate just by knowing
+    its id. There is no equivalent endpoint for CareerLens certificates;
+    they are never deletable.
+    """
+    try:
+        user_certificate_service.delete_user_certificate(certificate_id, email)
+        return {"success": True}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

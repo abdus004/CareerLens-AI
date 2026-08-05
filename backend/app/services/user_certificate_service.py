@@ -1,5 +1,7 @@
+import re
 import uuid
 from datetime import datetime, timezone
+from typing import Optional
 
 from app.database.db import supabase
 
@@ -11,6 +13,34 @@ from app.database.db import supabase
 # ---------------------------------------------------------------------
 
 STORAGE_BUCKET = "user-certificates"
+
+
+def _derive_name_from_filename(original_filename: str) -> str:
+    """
+    Turns an uploaded filename into a readable certificate name when
+    the user leaves Certificate Name blank, e.g.
+    'AWS_Cloud_Practitioner.pdf' -> 'AWS Cloud Practitioner'.
+    Preserves existing all-caps acronyms (AWS, IBM, SQL, ...) instead
+    of lowercasing them.
+    """
+    if not original_filename:
+        return "Untitled Certificate"
+
+    base = original_filename.rsplit(".", 1)[0] if "." in original_filename else original_filename
+    base = re.sub(r"[_\-]+", " ", base).strip()
+    base = re.sub(r"\s+", " ", base)
+
+    if not base:
+        return "Untitled Certificate"
+
+    words = []
+    for word in base.split(" "):
+        if word.isupper() and len(word) > 1:
+            words.append(word)
+        else:
+            words.append(word[:1].upper() + word[1:] if word else word)
+
+    return " ".join(words)
 
 
 def _upload_file(file_bytes: bytes, original_filename: str, content_type: str) -> tuple[str, str]:
@@ -42,22 +72,40 @@ def list_user_certificates(email: str) -> list:
 
 def add_user_certificate(
     email: str,
-    certificate_name: str,
-    provider: str,
-    issue_date: str,
-    category: str,
+    certificate_name: Optional[str],
+    provider: Optional[str],
+    issue_date: Optional[str],
+    category: Optional[str],
     file_bytes: bytes,
     original_filename: str,
     content_type: str,
 ) -> dict:
+    """
+    Certificate File is the only truly required input here.
+    certificate_name / provider / issue_date / category may all arrive
+    as None or as an empty/blank string (both are treated the same
+    way) and each falls back to a sensible default before the row is
+    ever built, so Supabase never sees a null it would reject:
+
+      certificate_name -> derived from the uploaded filename
+      provider          -> "Not specified"
+      category          -> "Other"
+      issue_date        -> stored as NULL (column allows it - see
+                             alter_user_certificates_optional_fields.sql)
+    """
     file_url, resolved_content_type = _upload_file(file_bytes, original_filename, content_type)
+
+    resolved_name = (certificate_name or "").strip() or _derive_name_from_filename(original_filename)
+    resolved_provider = (provider or "").strip() or "Not specified"
+    resolved_category = (category or "").strip() or "Other"
+    resolved_issue_date = (issue_date or "").strip() or None
 
     row = {
         "email": email,
-        "certificate_name": certificate_name,
-        "provider": provider,
-        "issue_date": issue_date,
-        "category": category or "Other",
+        "certificate_name": resolved_name,
+        "provider": resolved_provider,
+        "issue_date": resolved_issue_date,
+        "category": resolved_category,
         "file_url": file_url,
         "file_type": resolved_content_type,
         "source": "upload",
@@ -65,6 +113,40 @@ def add_user_certificate(
 
     inserted = supabase.table("user_certificates").insert(row).execute()
     return inserted.data[0]
+
+
+def delete_user_certificate(certificate_id: str, email: str) -> None:
+    """
+    Deletes one My Certificates row (and best-effort cleans up its file
+    from Supabase Storage). Verifies ownership server-side first - a
+    user can never delete another account's certificate just by
+    knowing its id. Never touches the 'certificates' table (CareerLens
+    certificates), which has no delete path at all.
+    """
+    existing = (
+        supabase.table("user_certificates")
+        .select("id, email, file_url")
+        .eq("id", certificate_id)
+        .maybe_single()
+        .execute()
+    )
+    if not existing or not existing.data:
+        raise ValueError("Certificate not found.")
+
+    if existing.data["email"] != email:
+        raise ValueError("This certificate does not belong to this account.")
+
+    supabase.table("user_certificates").delete().eq("id", certificate_id).execute()
+
+    file_url = existing.data.get("file_url")
+    if file_url:
+        try:
+            storage_filename = file_url.rsplit("/", 1)[-1]
+            supabase.storage.from_(STORAGE_BUCKET).remove([storage_filename])
+        except Exception:
+            # Storage cleanup is best-effort - the database record is
+            # already gone, which is what the user actually sees.
+            pass
 
 
 def complete_recommendation(

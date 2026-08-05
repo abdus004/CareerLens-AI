@@ -19,9 +19,12 @@ const CATEGORIES = [
 
 /**
  * Shared modal for:
- *  - Section 1 "Upload Certificate" (My Certificates) -> showCategory=true
+ *  - Section 1 "Upload Certificate" (My Certificates) -> showCategory=true,
+ *    requireDetails=false (only the file is mandatory; blank fields fall
+ *    back to server-computed defaults)
  *  - Section 3 "Complete Certification" upload, once progress hits 100%
- *    -> showCategory=false, name/provider pre-filled and locked
+ *    -> showCategory=false, name/provider pre-filled and locked,
+ *    requireDetails=true (unchanged, still fully required)
  *
  * onSubmit receives ({ certificate_name, provider, issue_date, category, file })
  * and is expected to be async - the modal shows its own submitting state
@@ -30,6 +33,7 @@ const CATEGORIES = [
 export default function UploadCertificateModal({
   title = "Upload Certificate",
   showCategory = true,
+  requireDetails = true,
   initialName = "",
   initialProvider = "",
   lockNameAndProvider = false,
@@ -54,7 +58,12 @@ export default function UploadCertificateModal({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!certificateName.trim() || !provider.trim() || !issueDate || !file) {
+    if (!file) {
+      setError("Please choose a certificate file.");
+      return;
+    }
+
+    if (requireDetails && (!certificateName.trim() || !provider.trim() || !issueDate)) {
       setError("Please fill in every field and choose a file.");
       return;
     }
@@ -100,7 +109,12 @@ export default function UploadCertificateModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-gray-400 text-sm">Certificate Name</label>
+            <label className="text-gray-400 text-sm">
+              Certificate Name
+              {!requireDetails && (
+                <span className="text-gray-500"> (Optional)</span>
+              )}
+            </label>
             <input
               type="text"
               value={certificateName}
@@ -109,10 +123,20 @@ export default function UploadCertificateModal({
               placeholder="e.g. Google Data Analytics Professional Certificate"
               className={`${INPUT_CLASS} disabled:opacity-60`}
             />
+            {!requireDetails && (
+              <p className="text-gray-500 text-xs mt-1.5">
+                Leave blank to use the file name.
+              </p>
+            )}
           </div>
 
           <div>
-            <label className="text-gray-400 text-sm">Provider</label>
+            <label className="text-gray-400 text-sm">
+              Provider
+              {!requireDetails && (
+                <span className="text-gray-500"> (Optional)</span>
+              )}
+            </label>
             <input
               type="text"
               value={provider}
@@ -125,7 +149,12 @@ export default function UploadCertificateModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-gray-400 text-sm">Issue Date</label>
+              <label className="text-gray-400 text-sm">
+                Issue Date
+                {!requireDetails && (
+                  <span className="text-gray-500"> (Optional)</span>
+                )}
+              </label>
               <input
                 type="date"
                 value={issueDate}
@@ -137,7 +166,12 @@ export default function UploadCertificateModal({
 
             {showCategory && (
               <div>
-                <label className="text-gray-400 text-sm">Category</label>
+                <label className="text-gray-400 text-sm">
+                  Category
+                  {!requireDetails && (
+                    <span className="text-gray-500"> (Optional)</span>
+                  )}
+                </label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
