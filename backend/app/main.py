@@ -16,6 +16,8 @@ from app.routes.placement_drives import router as placement_drives_router
 from app.routes.mock_interview import router as mock_interview_router
 from app.routes.skill_assessment import router as skill_assessment_router
 from app.routes.certificates import router as certificates_router
+from app.routes.settings import router as settings_router
+from app.routes.support import router as support_router
 
 from app.scheduler import start_scheduler, stop_scheduler
 
@@ -60,6 +62,8 @@ app.include_router(placement_drives_router)
 app.include_router(mock_interview_router)
 app.include_router(skill_assessment_router)
 app.include_router(certificates_router)
+app.include_router(settings_router)
+app.include_router(support_router)
 
 
 @app.get("/")

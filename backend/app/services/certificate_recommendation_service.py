@@ -171,6 +171,32 @@ def _read_recommendations(email: str) -> dict:
     return {"ready": True, "message": None, "recommendations": recommendations}
 
 
+def reset_for_new_resume(email: str) -> None:
+    """
+    Called from Settings > Replace Resume (see routes/settings.py).
+
+    Recommendations are normally generated exactly once per email,
+    ever (see get_or_generate_recommendations below) - by design, so a
+    page revisit never triggers a second paid Gemini call. Replacing
+    the resume is the one deliberate exception the product spec calls
+    out: the student's underlying resume has genuinely changed, so the
+    Top-5 should be allowed to regenerate once against the new resume
+    the next time recommendations are read.
+
+    Deletes any in-progress recommendations/progress and clears the
+    "already generated" marker so get_or_generate_recommendations runs
+    its one-time Gemini call again on next read. certificate_progress
+    rows also cascade automatically via their FK
+    (ON DELETE CASCADE - see create_certificates_module_tables.sql),
+    the explicit delete here is just defensive. Already-completed
+    certificates in user_certificates are untouched - those are the
+    student's earned history, not pending recommendations.
+    """
+    supabase.table("certificate_progress").delete().eq("email", email).execute()
+    supabase.table("certificate_recommendations").delete().eq("email", email).execute()
+    supabase.table("certificate_recommendation_status").delete().eq("email", email).execute()
+
+
 def get_or_generate_recommendations(email: str) -> dict:
     """
     Reads the persisted Top-5 recommendations for this email if they

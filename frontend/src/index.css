@@ -47,10 +47,6 @@
   50% { opacity: 1; }
 }
 
-@keyframes dash-flow {
-  to { stroke-dashoffset: -24; }
-}
-
 /* Respect the user's OS-level motion preference - every landing page
    animation degrades to a simple fade instead of continuous motion. */
 @media (prefers-reduced-motion: reduce) {
@@ -62,4 +58,125 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ===================================================================
+   LIGHT THEME - centralized, app-wide.
+
+   This project has no tailwind.config.js (Tailwind v4 is CSS-first)
+   and every existing page/component was built with a fixed set of
+   literal dark-mode utility classes (bg-[#0B1120], bg-white/5,
+   border-white/10, text-gray-400, text-white, ...) rather than
+   semantic/CSS-variable classes. Retrofitting 25+ already-completed
+   page files to a token system would mean rebuilding every one of
+   them, which the spec explicitly says not to do.
+
+   Instead, this block re-skins the app by targeting that EXACT,
+   already-cataloged set of utility classes wherever they appear,
+   scoped under `html.light`. Tailwind v4 generates all of its
+   utilities inside `@layer utilities` (declared implicitly by
+   `@import "tailwindcss"` above) - per the CSS cascade layers spec,
+   ANY plain (non-@layer) rule automatically wins over ANY ruleset
+   inside a layer, regardless of selector specificity or source order.
+   Since these overrides are plain rules appended after the Tailwind
+   import in this same file, they reliably win with no need for
+   !important and no need to touch a single existing component file.
+
+   ThemeContext (context/ThemeContext.jsx) toggles `html.light` and
+   persists the choice (localStorage + profiles.theme_preference).
+   =================================================================== */
+
+:root {
+  --clens-light-bg: #f4f2fb;
+  --clens-light-bg-alt: #eeebf8;
+  --clens-light-card: #ffffff;
+  --clens-light-card-wash: rgba(124, 58, 237, 0.045);
+  --clens-light-card-wash-strong: rgba(124, 58, 237, 0.085);
+  --clens-light-border: rgba(91, 61, 173, 0.16);
+  --clens-light-border-strong: rgba(91, 61, 173, 0.28);
+  --clens-light-text-primary: #1c1836;
+  --clens-light-text-secondary: #5b5580;
+  --clens-light-text-tertiary: #837da8;
+  --clens-light-text-quaternary: #a09bc2;
+  --clens-light-shadow: 0 1px 2px rgba(28, 24, 54, 0.04), 0 6px 20px rgba(76, 29, 149, 0.06);
+}
+
+html.light body {
+  background-color: var(--clens-light-bg);
+}
+
+/* Page / layout shell backgrounds */
+html.light .bg-\[\#050816\],
+html.light .bg-\[\#111827\] {
+  background-color: var(--clens-light-bg) !important;
+}
+
+/* Card / panel / input "sunken" backgrounds */
+html.light .bg-\[\#0B1120\],
+html.light .bg-\[\#0b0e1a\],
+html.light .bg-\[\#161825\],
+html.light .bg-\[\#1E2235\] {
+  background-color: var(--clens-light-card) !important;
+  box-shadow: var(--clens-light-shadow);
+}
+
+/* Glass cards */
+html.light .bg-white\/5 {
+  background-color: var(--clens-light-card-wash) !important;
+  box-shadow: var(--clens-light-shadow);
+}
+html.light .bg-white\/10 {
+  background-color: var(--clens-light-card-wash-strong) !important;
+}
+html.light .hover\:bg-white\/5:hover {
+  background-color: var(--clens-light-card-wash-strong) !important;
+}
+html.light .hover\:bg-white\/10:hover {
+  background-color: rgba(124, 58, 237, 0.13) !important;
+}
+
+/* Borders */
+html.light .border-white\/10 {
+  border-color: var(--clens-light-border) !important;
+}
+html.light .border-white\/15,
+html.light .border-white\/20 {
+  border-color: var(--clens-light-border-strong) !important;
+}
+html.light .hover\:border-white\/20:hover {
+  border-color: rgba(91, 61, 173, 0.4) !important;
+}
+
+/* Text */
+html.light .text-white,
+html.light .hover\:text-white:hover {
+  color: var(--clens-light-text-primary) !important;
+}
+html.light .text-gray-200 {
+  color: var(--clens-light-text-primary) !important;
+}
+html.light .text-gray-300 {
+  color: var(--clens-light-text-secondary) !important;
+}
+html.light .text-gray-400 {
+  color: var(--clens-light-text-secondary) !important;
+}
+html.light .text-gray-500 {
+  color: var(--clens-light-text-tertiary) !important;
+}
+html.light .text-gray-600 {
+  color: var(--clens-light-text-quaternary) !important;
+}
+html.light .placeholder\:text-gray-500::placeholder {
+  color: var(--clens-light-text-quaternary) !important;
+}
+
+/* Modal / overlay backdrop - lighter scrim than dark mode's black/70 */
+html.light .bg-black\/70 {
+  background-color: rgba(28, 24, 54, 0.28) !important;
+}
+
+/* Scrollbar (landing / long lists) stays usable on a light page */
+html.light ::-webkit-scrollbar-thumb {
+  background-color: rgba(91, 61, 173, 0.25);
 }

@@ -1,6 +1,16 @@
 import { Search, Bell, ChevronDown } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useProfile } from "../../context/ProfileContext";
 
 export default function Navbar() {
+  const navigate = useNavigate();
+  const { profileData } = useProfile();
+
+  // Falls back to the placeholder only until a real profile picture is
+  // set - updates instantly the moment Settings saves a new one, since
+  // both read from the same ProfileContext (no logout/login needed).
+  const avatarSrc = profileData.avatar_url || "https://i.pravatar.cc/100";
+
   return (
     <header
       className="
@@ -95,6 +105,8 @@ export default function Navbar() {
         {/* Profile */}
 
         <button
+          onClick={() => navigate("/settings")}
+          title={profileData.full_name || "Settings"}
           className="
             flex
             items-center
@@ -107,7 +119,7 @@ export default function Navbar() {
         >
 
           <img
-            src="https://i.pravatar.cc/100"
+            src={avatarSrc}
             alt="profile"
             className="
               w-9
@@ -115,6 +127,7 @@ export default function Navbar() {
               rounded-full
               border-2
               border-violet-500
+              object-cover
             "
           />
 

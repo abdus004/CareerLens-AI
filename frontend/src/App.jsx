@@ -22,6 +22,7 @@ import AssessmentResult from "./pages/AssessmentResult";
 import Certificates from "./pages/Certificates";
 import Progress from "./pages/Portfolio";
 import UpcomingDrivesPage from "./pages/UpcomingDrives";
+import HelpSupport from "./pages/HelpSupport";
 
 export default function App() {
   return (
@@ -121,6 +122,11 @@ export default function App() {
 <Route
   path="/placement-drives"
   element={<UpcomingDrivesPage />}
+/>
+
+<Route
+  path="/help-support"
+  element={<HelpSupport />}
 />
 
     </Routes>
