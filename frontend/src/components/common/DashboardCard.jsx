@@ -8,19 +8,13 @@ export default function DashboardCard({
   return (
     <div
       className={`
+        cl-card
         h-full
         rounded-2xl
-        border
-        border-white/10
-        bg-white/5
         backdrop-blur-xl
         p-5
         flex
         flex-col
-        transition-all
-        duration-300
-        hover:border-violet-500/50
-        hover:bg-white/[0.07]
         ${className}
       `}
     >

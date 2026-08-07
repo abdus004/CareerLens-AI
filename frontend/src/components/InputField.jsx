@@ -45,22 +45,13 @@ export default function InputField({
           value={value}
           onChange={onChange}
           className={`
+            cl-input
             w-full
             rounded-2xl
-            border
-            ${error ? "border-red-500/50" : "border-white/10"}
-            bg-white/5
             px-5
             py-3
-            text-white
-            placeholder:text-gray-500
             outline-none
-            transition-all
-            duration-300
-            focus:border-violet-500
-            focus:ring-2
-            focus:ring-violet-500/40
-            focus:bg-white/10
+            ${error ? "cl-input-error" : ""}
           `}
         />
 

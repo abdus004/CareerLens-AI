@@ -2,26 +2,36 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const SIZES = {
+  sm: "px-4 py-2.5 text-sm",
   md: "px-6 py-3 text-base",
   lg: "px-8 py-4 text-lg",
 };
 
 const BASE =
-  "inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition-all duration-300 whitespace-nowrap";
+  "cl-btn inline-flex items-center justify-center gap-2 rounded-2xl font-semibold whitespace-nowrap";
 
+/**
+ * Unified button system - every variant maps to a `.cl-btn-*` class in
+ * index.css, which is built entirely from the --cl-* design tokens.
+ * That means every variant automatically re-skins for the active
+ * theme (dark/light) with zero logic here - this component only
+ * chooses which class to apply.
+ */
 const VARIANTS = {
-  primary:
-    "text-white bg-gradient-to-r from-violet-600 via-fuchsia-600 to-purple-600 shadow-[0_0_30px_rgba(139,92,246,.4)] hover:shadow-[0_0_45px_rgba(139,92,246,.6)]",
-  secondary:
-    "text-white border border-white/15 bg-white/5 backdrop-blur-xl hover:bg-white/10 hover:border-white/25",
+  primary: "cl-btn-primary",
+  secondary: "cl-btn-secondary",
+  outline: "cl-btn-outline",
+  danger: "cl-btn-danger",
+  success: "cl-btn-success",
 };
 
 /**
- * Shared CTA button used across the landing page (Hero, Navbar, final
- * CTA section). Renders as a react-router <Link> when `to` is given,
- * a plain anchor when `href` is given, or a <button> otherwise -
- * covers every use case on the page without each section rolling its
- * own button markup.
+ * Shared CTA / action button used across the landing page (Hero,
+ * Navbar, final CTA section) and available anywhere else in the app
+ * that wants the same premium look. Renders as a react-router <Link>
+ * when `to` is given, a plain anchor when `href` is given, or a
+ * <button> otherwise - covers every use case without each section
+ * rolling its own button markup.
  */
 export default function CTAButton({
   children,
@@ -32,16 +42,20 @@ export default function CTAButton({
   href,
   onClick,
   icon: Icon,
+  type = "button",
+  disabled = false,
   className = "",
   ...rest
 }) {
   const resolvedVariant = variant || (primary ? "primary" : "secondary");
-  const classes = `${BASE} ${SIZES[size] || SIZES.lg} ${VARIANTS[resolvedVariant]} ${className}`;
+  const classes = `${BASE} ${SIZES[size] || SIZES.lg} ${VARIANTS[resolvedVariant] || VARIANTS.primary} ${
+    disabled ? "opacity-50 pointer-events-none" : ""
+  } ${className}`;
 
   const content = (
     <motion.span
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.97 }}
+      whileHover={disabled ? undefined : { scale: 1.05, y: -2 }}
+      whileTap={disabled ? undefined : { scale: 0.97, y: 0 }}
       transition={{ duration: 0.2 }}
       className={classes}
     >
@@ -67,7 +81,7 @@ export default function CTAButton({
   }
 
   return (
-    <button onClick={onClick} className="inline-block" {...rest}>
+    <button type={type} onClick={onClick} disabled={disabled} className="inline-block" {...rest}>
       {content}
     </button>
   );

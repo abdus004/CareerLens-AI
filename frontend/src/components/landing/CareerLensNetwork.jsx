@@ -3,6 +3,7 @@ import { motion, useMotionValue, useSpring } from "framer-motion";
 import { FileText, BarChart3, Compass, Map, MessageSquare, Briefcase, Award } from "lucide-react";
 
 import BrandIcon from "../BrandIcon";
+import { useTheme } from "../../context/ThemeContext";
 
 const NODES = [
   { key: "resume", label: "Resume", icon: FileText, color: "#a78bfa" },
@@ -36,12 +37,20 @@ const NODE_POSITIONS = NODES.map((node, i) => {
  * Interview / Jobs -> Certificates - expressed as glowing connected
  * nodes rather than a literal diagram.
  *
+ * The center node itself is dressed as a glowing holographic
+ * sphere / glass crystal - two tilted rings spinning at different
+ * speeds around the brand mark (pure CSS 3D transforms) plus a
+ * drifting glass-refraction sheen - so it still reads as a floating
+ * 3D AI object, not a flat badge, in either theme.
+ *
  * Pure CSS/SVG/React - no three.js or any 3D library, so it's light,
  * has nothing that can fail to load, and needs no lazy-loading or
  * error boundary the way the old WebGL hero did.
  */
 export default function CareerLensNetwork() {
   const containerRef = useRef(null);
+  const { theme } = useTheme();
+  const isLight = theme === "light";
 
   const pointerX = useMotionValue(0);
   const pointerY = useMotionValue(0);
@@ -70,13 +79,28 @@ export default function CareerLensNetwork() {
       className="relative w-full h-full select-none"
     >
       {/* Ambient background glow - moves slightly less than the
-          foreground nodes for a subtle sense of depth. */}
+          foreground nodes for a subtle sense of depth. Boosted
+          opacity in light mode so it still registers against a
+          near-white page instead of washing out. */}
       <motion.div
         style={{ x: springX, y: springY }}
         className="absolute inset-0"
       >
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[85%] h-[85%] rounded-full bg-gradient-to-br from-violet-600/20 via-fuchsia-600/10 to-cyan-500/20 blur-[80px]" />
+        <div
+          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[85%] h-[85%] rounded-full blur-[80px] bg-gradient-to-br ${
+            isLight
+              ? "from-violet-500/30 via-fuchsia-500/18 to-cyan-500/30"
+              : "from-violet-600/20 via-fuchsia-600/10 to-cyan-500/20"
+          }`}
+        />
       </motion.div>
+
+      {/* Soft grounding shadow beneath the orb - on a light page a
+          floating object needs a shadow underneath to actually read
+          as floating; on a dark page the glow alone does that job. */}
+      {isLight && (
+        <div className="absolute top-[58%] left-1/2 -translate-x-1/2 w-40 h-8 rounded-full bg-violet-900/10 blur-2xl" />
+      )}
 
       {/* Connection lines */}
       <svg
@@ -122,6 +146,44 @@ export default function CareerLensNetwork() {
             className="absolute inset-0 m-auto w-28 h-28 rounded-full bg-gradient-to-br from-violet-500/50 to-cyan-400/50 blur-2xl animate-[pulse-glow_4s_ease-in-out_infinite]"
             aria-hidden="true"
           />
+
+          {/* Holographic sphere rings - two ellipses (rotateX tilts a
+              circle into an ellipse) spinning at different speeds in
+              opposite directions around the brand mark. Also gently
+              bobs up and down so the whole orb reads as floating. */}
+          <div
+            className="absolute inset-0 m-auto w-32 h-32 animate-[orb-float_5s_ease-in-out_infinite]"
+            style={{ perspective: "600px" }}
+            aria-hidden="true"
+          >
+            <div
+              className={`absolute inset-0 rounded-full animate-[orb-ring-spin-a_14s_linear_infinite] border ${
+                isLight ? "border-violet-500/45" : "border-violet-300/30"
+              }`}
+            />
+            <div
+              className={`absolute inset-3 rounded-full animate-[orb-ring-spin-b_20s_linear_infinite] border ${
+                isLight ? "border-cyan-500/40" : "border-cyan-300/25"
+              }`}
+            />
+          </div>
+
+          {/* Glass-crystal refraction sheen drifting across the mark */}
+          <div
+            className="absolute inset-0 m-auto w-20 h-20 rounded-full overflow-hidden pointer-events-none"
+            aria-hidden="true"
+          >
+            <div
+              className="absolute inset-0 animate-[shine-sweep_5s_ease-in-out_infinite]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(115deg, transparent 30%, rgba(255,255,255,.65) 48%, transparent 66%)",
+                backgroundSize: "250% 100%",
+                mixBlendMode: "overlay",
+              }}
+            />
+          </div>
+
           <BrandIcon size={76} className="relative z-10" />
           <span className="relative z-10 text-xs font-semibold tracking-wide text-white/90 bg-white/5 border border-white/10 backdrop-blur-xl px-3 py-1 rounded-full whitespace-nowrap">
             CareerLens AI

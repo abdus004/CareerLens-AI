@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 
 import BrandIcon from "./BrandIcon";
+import ThemeToggle from "./landing/ThemeToggle";
 
 const navItems = [
   { label: "Home", href: "#top" },
@@ -61,7 +62,11 @@ export default function Navbar() {
         </ul>
 
         {/* Right: desktop actions */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-5">
+          <ThemeToggle />
+
+          <span className="h-6 w-px bg-white/10" aria-hidden="true" />
+
           <button
             onClick={() => navigate("/login")}
             className="text-gray-300 hover:text-white transition"
@@ -71,20 +76,24 @@ export default function Navbar() {
 
           <button
             onClick={() => navigate("/signup")}
-            className="px-5 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold hover:scale-105 transition shadow-[0_0_25px_rgba(139,92,246,.4)]"
+            className="cl-btn cl-btn-primary px-5 py-3 rounded-xl font-semibold"
           >
             Get Started
           </button>
         </div>
 
-        {/* Mobile menu toggle */}
-        <button
-          onClick={() => setMobileOpen((open) => !open)}
-          className="md:hidden text-white p-2"
-          aria-label={mobileOpen ? "Close menu" : "Open menu"}
-        >
-          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        {/* Mobile: toggle stays visible next to the menu button */}
+        <div className="flex items-center gap-3 md:hidden">
+          <ThemeToggle />
+
+          <button
+            onClick={() => setMobileOpen((open) => !open)}
+            className="text-white p-2"
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          >
+            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </nav>
 
       {/* Mobile menu panel */}
@@ -119,7 +128,7 @@ export default function Navbar() {
 
               <button
                 onClick={() => navigate("/signup")}
-                className="px-5 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold text-center transition shadow-[0_0_25px_rgba(139,92,246,.4)]"
+                className="cl-btn cl-btn-primary px-5 py-3 rounded-xl font-semibold text-center"
               >
                 Get Started
               </button>

@@ -9,7 +9,7 @@ import { getCurrentUser } from "../../utils/session";
 export default function DashboardLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
   const { profileData, profileLoaded, loadProfile } = useProfile();
-  const { theme, setTheme } = useTheme();
+  const { reconcileFromProfile } = useTheme();
 
   // Runs once per session (profileLoaded guards it), regardless of how
   // many times DashboardLayout itself remounts across page navigations -
@@ -26,18 +26,17 @@ export default function DashboardLayout({ children }) {
     loadProfile(user.email);
   }, [profileLoaded, loadProfile]);
 
-  // Reconcile theme from the profile that was just loaded - only
-  // matters the first time on a device that has no localStorage value
-  // yet; persist=false so this never writes the same value straight
-  // back to the server.
+  // Hand the freshly-loaded profile's theme to ThemeContext, which owns
+  // all reconciliation rules (see reconcileFromProfile in
+  // ThemeContext.jsx - it's a one-shot no-op after the first real
+  // call, and only ever applies on a browser with no cached theme yet).
+  // This effect itself re-runs on every page navigation since
+  // DashboardLayout remounts each time - that's fine and intentional,
+  // ThemeContext is what makes every call after the first harmless.
   useEffect(() => {
     if (!profileLoaded) return;
-    const remoteTheme = profileData.theme_preference;
-    if ((remoteTheme === "light" || remoteTheme === "dark") && remoteTheme !== theme) {
-      setTheme(remoteTheme, false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileLoaded]);
+    reconcileFromProfile(profileData.theme_preference);
+  }, [profileLoaded, profileData.theme_preference, reconcileFromProfile]);
 
   return (
     <div className="flex h-screen bg-[#050816] overflow-hidden">

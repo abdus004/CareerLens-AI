@@ -3,27 +3,46 @@ import { Camera, Loader2, Trash2 } from "lucide-react";
 import api from "../../services/api";
 import { useProfile } from "../../context/ProfileContext";
 import { getCurrentUser } from "../../utils/session";
+import AvatarCropModal from "./AvatarCropModal";
 
 const PLACEHOLDER_AVATAR = "https://i.pravatar.cc/150";
+const ACCEPTED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 export default function AvatarUploader() {
   const { profileData, updateProfile } = useProfile();
   const fileInputRef = useRef(null);
+
+  const [pendingFile, setPendingFile] = useState(null); // file awaiting crop
+  const [showCropModal, setShowCropModal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
   const avatarSrc = profileData.avatar_url || PLACEHOLDER_AVATAR;
 
-  const handleFileChange = async (e) => {
+  const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      setError("Please choose an image file (PNG, JPG or WEBP).");
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      setError("Please choose a JPG, PNG or WEBP image.");
       return;
     }
 
+    // Opens the crop modal FIRST - nothing is uploaded until the user
+    // confirms the crop (see handleCropSave).
+    setError("");
+    setPendingFile(file);
+    setShowCropModal(true);
+  };
+
+  const handleCropCancel = () => {
+    if (uploading) return;
+    setShowCropModal(false);
+    setPendingFile(null);
+  };
+
+  const handleCropSave = async (croppedFile) => {
     const user = getCurrentUser();
     if (!user?.email) return;
 
@@ -33,15 +52,21 @@ export default function AvatarUploader() {
     try {
       const formData = new FormData();
       formData.append("email", user.email);
-      formData.append("file", file);
+      // Existing avatar upload endpoint and Storage bucket, unchanged -
+      // only the file it receives is now a pre-cropped 512x512 square
+      // instead of the raw original.
+      formData.append("file", croppedFile);
 
       const response = await api.post("/settings/avatar", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      // Same ProfileContext the Navbar reads from - updates everywhere
-      // that shows the avatar instantly, no logout/login needed.
+      // Same ProfileContext the Navbar (and anywhere else) reads from -
+      // updates everywhere the avatar shows instantly, no refresh needed.
       updateProfile({ avatar_url: response.data.avatar_url });
+
+      setShowCropModal(false);
+      setPendingFile(null);
     } catch (err) {
       setError(err?.response?.data?.detail || "Could not upload your photo. Please try again.");
     } finally {
@@ -88,17 +113,13 @@ export default function AvatarUploader() {
             hover:opacity-90 transition disabled:opacity-60
           "
         >
-          {uploading ? (
-            <Loader2 size={16} className="text-white animate-spin" />
-          ) : (
-            <Camera size={16} className="text-white" />
-          )}
+          <Camera size={16} className="text-white" />
         </button>
 
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/jpg,image/png,image/webp"
           className="hidden"
           onChange={handleFileChange}
         />
@@ -109,7 +130,7 @@ export default function AvatarUploader() {
           {profileData.full_name || "Your profile picture"}
         </p>
         <p className="text-gray-400 text-sm mt-1">
-          PNG, JPG or WEBP. Square images look best.
+          JPG, PNG or WEBP. You'll be able to crop and zoom before saving.
         </p>
 
         <div className="flex gap-3 mt-3">
@@ -144,8 +165,18 @@ export default function AvatarUploader() {
           )}
         </div>
 
-        {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
+        {error && !showCropModal && <p className="text-red-400 text-sm mt-2">{error}</p>}
       </div>
+
+      {showCropModal && (
+        <AvatarCropModal
+          file={pendingFile}
+          saving={uploading}
+          error={error}
+          onCancel={handleCropCancel}
+          onSave={handleCropSave}
+        />
+      )}
     </div>
   );
 }
