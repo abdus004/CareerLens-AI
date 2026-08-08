@@ -766,3 +766,176 @@ Do NOT use markdown.
 Do NOT use ```json.
 Do NOT write explanations outside JSON.
 """
+
+
+def learning_topic_detail_prompt(role: str, skill: str, level: str, duration: str) -> str:
+    """
+    Called ONLY the first time a given (role, skill) pair is opened via
+    "Start Learning" - see learning_path_service.get_or_generate_topic_details,
+    which persists the result in learning_path_topic_details and never
+    calls this again for that exact (role, skill) pair. Content is
+    scoped to (role, skill), not to an individual student, since the
+    roadmap for e.g. "Backend Developer -> PostgreSQL" is the same
+    regardless of which student is viewing it.
+    """
+
+    return f"""
+You are CareerLens AI, an expert curriculum designer and career mentor.
+
+A student following the "{role}" learning path wants a complete,
+in-depth learning guide for this specific topic:
+
+Skill: {skill}
+Level: {level}
+Suggested Duration: {duration}
+
+Return ONLY valid JSON in exactly this structure:
+
+{{
+    "overview": "",
+    "why_important": "",
+    "prerequisites": [],
+    "skills_to_learn": [],
+    "roadmap": [
+        {{"step": "", "description": ""}}
+    ],
+    "official_documentation": [
+        {{"title": "", "url": ""}}
+    ],
+    "free_resources": [
+        {{"title": "", "url": "", "type": ""}}
+    ],
+    "paid_resources": [
+        {{"title": "", "url": "", "type": ""}}
+    ],
+    "youtube_resources": [
+        {{"title": "", "url": ""}}
+    ],
+    "practice_problems": [
+        {{"title": "", "url": ""}}
+    ],
+    "mini_projects": [
+        {{"title": "", "description": ""}}
+    ],
+    "interview_preparation": [],
+    "recommended_certification": "",
+    "estimated_duration": ""
+}}
+
+Rules:
+
+- overview: 3-5 sentences introducing what "{skill}" is and what the student will be able to do after learning it.
+- why_important: 2-4 sentences on why this skill matters specifically for a "{role}".
+- prerequisites: 0-5 short items; return an empty list if there genuinely are none.
+- skills_to_learn: 4-10 concrete sub-skills/concepts that make up "{skill}".
+- roadmap: 5-9 ordered steps, each a short step name plus a 1-2 sentence description, taking the student from zero to job-ready in this skill.
+- official_documentation: 1-4 links. MUST be the real, official documentation site for this exact technology/topic (examples: docs.python.org, developer.mozilla.org, react.dev, docs.oracle.com/javase, fastapi.tiangolo.com, kubernetes.io/docs, docs.aws.amazon.com, cloud.google.com/docs, learn.microsoft.com). If "{skill}" is not a specific technology (e.g. it is a broad concept like "System Design" or "Data Structures"), link to the most authoritative freely-available reference you know of instead. Never invent a URL you are not confident is real - if unsure, omit that entry rather than guess.
+- free_resources: 2-5 real, well-known free resources (official docs, freeCodeCamp, W3Schools, MDN, official language/framework tutorials, NPTEL, etc). type is a short label like "Tutorial", "Documentation", "Course".
+- paid_resources: 1-3 real, well-known paid resources (Coursera, Udemy, Pluralsight, official certification courses). type is a short label like "Course", "Certification".
+- youtube_resources: 2-4 entries. To avoid ever linking a fabricated/dead video, use a YouTube SEARCH URL in the exact form "https://www.youtube.com/results?search_query=<topic keywords, url-encoded with + for spaces>" rather than a specific video URL, with a descriptive title of what the student should search for.
+- practice_problems: 2-5 entries linking to real, well-known practice platforms relevant to this skill (LeetCode, HackerRank, Codewars, StrataScratch, Kaggle, W3Schools exercises, etc) - link to the platform/topic section, not a fabricated specific problem URL.
+- mini_projects: 2-4 small project ideas a student could build to practice "{skill}", each with a one-sentence description.
+- interview_preparation: 4-8 short interview-style questions or focus areas specific to "{skill}" that a "{role}" candidate should be ready for.
+- recommended_certification: ONE real, well-known certification name (with provider) that best complements this specific skill, e.g. "AWS Certified Developer - Associate (AWS)". Use "" if none genuinely fits.
+- estimated_duration: a realistic duration string, e.g. "3 Weeks", "1-2 Months" - default to "{duration}" if you don't have a better estimate.
+- Do NOT invent fake URLs. Prefer official documentation for technical topics. If genuinely unsure a URL is correct, omit that resource entry instead of guessing.
+- Return ONLY valid JSON, no markdown fences, no commentary.
+
+Do NOT use markdown.
+Do NOT use ```json.
+Do NOT write explanations outside JSON.
+"""
+
+
+def certificate_extraction_prompt() -> str:
+    """
+    Called from the Certificate Upload "AI Extraction" flow (Section 1
+    - My Certificates, and Section 3's completion upload) via
+    ai/gemini.py:generate_json_from_file, which attaches the uploaded
+    certificate file (image or PDF) to this exact prompt. Never called
+    without a file attached - the fields below are read directly off
+    that file, not inferred from context.
+    """
+
+    return f"""
+You are an expert at reading professional certificates, credentials,
+and course-completion documents (PDF or image).
+
+Look at the attached certificate file and extract the following
+fields exactly as they appear on the certificate.
+
+Return ONLY valid JSON in exactly this structure:
+
+{{
+    "certificate_name": "",
+    "provider": "",
+    "issue_date": "",
+    "category": "",
+    "confidence": {{
+        "certificate_name": true,
+        "provider": true,
+        "issue_date": true,
+        "category": true
+    }}
+}}
+
+Rules:
+
+- certificate_name: the exact title/name of the certificate or course as printed. If you cannot read it confidently, return an empty string and set confidence.certificate_name to false.
+- provider: the issuing organization/company/platform name (e.g. "Google", "AWS", "Coursera", "NPTEL", a university name). If you cannot read it confidently, return an empty string and set confidence.provider to false.
+- issue_date: the issue/completion date in strict "YYYY-MM-DD" format. If only a month and year are printed, use the 1st of that month. If no date is visible or you are not confident, return an empty string and set confidence.issue_date to false.
+- category: pick the single best-fitting label from EXACTLY this list: "Cloud", "Programming", "Data Science", "AI/ML", "Database", "DevOps", "Web Development", "Cybersecurity", "Networking", "Other". Use "Other" if genuinely unclear.
+- confidence: a boolean per field - true only if you are confident the value you extracted is correct and actually printed on the document, false if you guessed, inferred, or could not read it clearly.
+- Never fabricate a value that is not actually visible on the certificate - an empty string with confidence=false is always preferred over a guess.
+- Return ONLY valid JSON, no markdown fences, no commentary.
+
+Do NOT use markdown.
+Do NOT use ```json.
+Do NOT write explanations outside JSON.
+"""
+
+
+def certificate_relevance_prompt(career_context: dict, certificate: dict) -> str:
+    """
+    A small, deterministic-context follow-up call (plain generate_json,
+    no file attached) used to decide whether a just-uploaded/completed
+    certificate is relevant to the student's own career path - see
+    services/certificate_service.assess_relevance. Deliberately
+    separate from certificate_extraction_prompt above: extraction reads
+    the file, this call reasons over already-known profile context, so
+    the two can be cached/retried independently.
+    """
+
+    return f"""
+You are CareerLens AI, an expert career advisor.
+
+A student just added the following certificate to their profile:
+
+Certificate:
+{certificate}
+
+Student's career context (recommended role, career goal, and current
+key skills):
+{career_context}
+
+Decide whether this certificate is genuinely relevant to the
+student's career path.
+
+Return ONLY valid JSON in exactly this structure:
+
+{{
+    "career_relevant": true,
+    "relevance_note": ""
+}}
+
+Rules:
+
+- career_relevant must be true ONLY if this certificate's subject matter meaningfully supports the student's recommended_role/career_goal (e.g. an "AWS Developer Associate" certificate for a student pursuing Backend Developer is relevant; a "Digital Marketing Basics" certificate for the same student is not).
+- relevance_note: ONE short sentence (under 20 words) explaining the decision either way.
+- Do not be overly generous - only mark it relevant if the connection is genuine and specific, not just "technology in general."
+- Return ONLY valid JSON, no markdown fences, no commentary.
+
+Do NOT use markdown.
+Do NOT use ```json.
+Do NOT write explanations outside JSON.
+"""

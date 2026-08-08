@@ -35,6 +35,7 @@ export default function CareerOpportunities() {
   // whichever is currently on screen. Both are the same card shape.
   const [jobs, setJobs] = useState([]);
   const [isFiltered, setIsFiltered] = useState(false);
+  const [totalMatching, setTotalMatching] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -100,6 +101,7 @@ export default function CareerOpportunities() {
         const recommendations = response.data.recommendations || [];
 
         setJobs(recommendations);
+        setTotalMatching(response.data.total_matching || 0);
         setIsFiltered(false);
         setError(null);
         setMissingDependency(null);
@@ -546,7 +548,14 @@ export default function CareerOpportunities() {
           </div>
 
           {!isFiltered && (
-            <h2 className="text-xl font-bold text-white mb-5">Your Top Matches</h2>
+            <div className="mb-5">
+              <h2 className="text-xl font-bold text-white">Top Recommended Jobs</h2>
+              {jobs.length > 0 && (
+                <p className="text-gray-400 text-sm mt-1">
+                  Showing {jobs.length} of {totalMatching} matching jobs
+                </p>
+              )}
+            </div>
           )}
 
           {/* Empty state (filtered search with no results) */}

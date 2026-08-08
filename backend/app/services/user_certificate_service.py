@@ -79,6 +79,8 @@ def add_user_certificate(
     file_bytes: bytes,
     original_filename: str,
     content_type: str,
+    career_relevant: bool = False,
+    relevance_note: Optional[str] = None,
 ) -> dict:
     """
     Certificate File is the only truly required input here.
@@ -92,6 +94,12 @@ def add_user_certificate(
       category          -> "Other"
       issue_date        -> stored as NULL (column allows it - see
                              alter_user_certificates_optional_fields.sql)
+
+    career_relevant / relevance_note are computed by
+    certificate_ai_service.assess_certificate_relevance in the route
+    layer (this file makes zero Gemini calls, per its own docstring
+    above) and simply persisted here - see user_certificates schema,
+    which already has both columns for exactly this purpose.
     """
     file_url, resolved_content_type = _upload_file(file_bytes, original_filename, content_type)
 
@@ -109,6 +117,8 @@ def add_user_certificate(
         "file_url": file_url,
         "file_type": resolved_content_type,
         "source": "upload",
+        "career_relevant": bool(career_relevant),
+        "relevance_note": relevance_note or None,
     }
 
     inserted = supabase.table("user_certificates").insert(row).execute()
@@ -158,6 +168,8 @@ def complete_recommendation(
     file_bytes: bytes,
     original_filename: str,
     content_type: str,
+    career_relevant: bool = False,
+    relevance_note: Optional[str] = None,
 ) -> dict:
     """
     Verifies (server-side) that this recommendation belongs to this
@@ -207,6 +219,8 @@ def complete_recommendation(
         "file_url": file_url,
         "file_type": resolved_content_type,
         "source": "recommendation",
+        "career_relevant": bool(career_relevant),
+        "relevance_note": relevance_note or None,
     }
 
     inserted = supabase.table("user_certificates").insert(row).execute()
@@ -231,8 +245,12 @@ def update_progress(recommendation_id: str, email: str, progress_percent: int) -
     if recommendation_response.data["email"] != email:
         raise ValueError("This recommendation does not belong to this account.")
 
-    if progress_percent not in (0, 25, 50, 75, 100):
-        raise ValueError("progress_percent must be one of 0, 25, 50, 75, 100.")
+    # Any whole value 0-100 is allowed - see
+    # backend/migrations/2026_08_08_learning_path_and_jobs_and_certs.sql,
+    # which relaxes certificate_progress's CHECK constraint from the
+    # fixed {0,25,50,75,100} set to a plain 0-100 range.
+    if not isinstance(progress_percent, int) or progress_percent < 0 or progress_percent > 100:
+        raise ValueError("progress_percent must be a whole number between 0 and 100.")
 
     updated = (
         supabase.table("certificate_progress")

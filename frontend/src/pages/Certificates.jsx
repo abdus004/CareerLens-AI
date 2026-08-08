@@ -9,6 +9,7 @@ import CareerLensCertificatesSection from "../components/certificates/CareerLens
 import RecommendedCertificationsSection from "../components/certificates/RecommendedCertificationsSection";
 import UploadCertificateModal from "../components/certificates/UploadCertificateModal";
 import CertificateDetailsModal from "../components/certificates/CertificateDetailsModal";
+import CertificateAnalytics from "../components/certificates/CertificateAnalytics";
 
 export default function Certificates() {
   const user = getCurrentUser();
@@ -189,7 +190,7 @@ export default function Certificates() {
 
   return (
     <DashboardLayout>
-      <div className="mb-2">
+      <div className="mb-6">
         <h1 className="text-4xl font-bold text-white">Certificates</h1>
         <p className="text-gray-400 mt-2">
           Your certification dashboard - uploaded certificates, CareerLens
@@ -207,7 +208,19 @@ export default function Certificates() {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-2 gap-5 items-stretch">
+      {/* Analytics - always above the three sections, always computed
+          from the real lists loaded below (never hardcoded). */}
+      <CertificateAnalytics
+        myCertificates={myCertificates}
+        clCertificates={clCertificates}
+        recommendations={recommendations}
+      />
+
+      {/* Three sections, stacked VERTICALLY (not side-by-side) - each
+          one scrolls its own certificate cards horizontally. Order:
+          My Certificates -> CareerLens Certificates -> Recommended
+          Certifications. */}
+      <div className="space-y-6">
         <MyCertificatesSection
           certificates={myCertificates}
           loading={myCertsLoading}
@@ -220,20 +233,19 @@ export default function Certificates() {
           loading={clLoading}
           error={clError}
         />
+        <RecommendedCertificationsSection
+          ready={recReady}
+          message={recMessage}
+          recommendations={recommendations}
+          loading={recLoading}
+          error={recError}
+          updatingId={updatingId}
+          onProgressChange={handleProgressChange}
+          onViewDetails={(rec) => setDetailsRec(rec)}
+          onCompleteClick={(rec) => setCompleteRec(rec)}
+          onRetry={loadRecommendations}
+        />
       </div>
-
-      <RecommendedCertificationsSection
-        ready={recReady}
-        message={recMessage}
-        recommendations={recommendations}
-        loading={recLoading}
-        error={recError}
-        updatingId={updatingId}
-        onProgressChange={handleProgressChange}
-        onViewDetails={(rec) => setDetailsRec(rec)}
-        onCompleteClick={(rec) => setCompleteRec(rec)}
-        onRetry={loadRecommendations}
-      />
 
       {uploadModalOpen && (
         <UploadCertificateModal

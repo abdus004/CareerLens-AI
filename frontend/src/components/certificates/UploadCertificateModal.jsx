@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { X, UploadCloud, RefreshCw } from "lucide-react";
+import { X, UploadCloud, RefreshCw, Sparkles, AlertTriangle } from "lucide-react";
+import api from "../../services/api";
 
 const INPUT_CLASS =
   "mt-2 w-full rounded-xl bg-[#0B1120] border border-white/10 p-3 text-white outline-none focus:border-cyan-500 transition";
@@ -29,11 +30,21 @@ const CATEGORIES = [
  * onSubmit receives ({ certificate_name, provider, issue_date, category, file })
  * and is expected to be async - the modal shows its own submitting state
  * and surfaces onSubmit's thrown error message.
+ *
+ * AI Extraction: as soon as a file is chosen, it's sent to
+ * POST /certificates/extract (reusing the existing Gemini client - see
+ * certificate_ai_service.py) and the returned fields pre-fill the form
+ * below - the user never has to type every field by hand, but can
+ * still correct anything the AI got wrong (or leave the fields blank
+ * if extraction couldn't read them confidently) before saving. Locked
+ * fields (name/provider, when completing a Recommended Certification)
+ * are never overwritten by extraction.
  */
 export default function UploadCertificateModal({
   title = "Upload Certificate",
   showCategory = true,
   requireDetails = true,
+  enableAiExtraction = true,
   initialName = "",
   initialProvider = "",
   lockNameAndProvider = false,
@@ -49,9 +60,61 @@ export default function UploadCertificateModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleFileChange = (e) => {
-    if (e.target.files.length > 0) {
-      setFile(e.target.files[0]);
+  const [extracting, setExtracting] = useState(false);
+  const [extractionDone, setExtractionDone] = useState(false);
+  const [lowConfidenceFields, setLowConfidenceFields] = useState({});
+
+  const handleFileChange = async (e) => {
+    if (!e.target.files.length) return;
+    const chosenFile = e.target.files[0];
+    setFile(chosenFile);
+    setExtractionDone(false);
+    setLowConfidenceFields({});
+
+    if (!enableAiExtraction) return;
+
+    try {
+      setExtracting(true);
+      setError(null);
+
+      const formData = new FormData();
+      formData.append("file", chosenFile);
+
+      const response = await api.post("/certificates/extract", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      const extracted = response.data?.data;
+      if (extracted) {
+        if (!lockNameAndProvider && extracted.certificate_name) {
+          setCertificateName(extracted.certificate_name);
+        }
+        if (!lockNameAndProvider && extracted.provider) {
+          setProvider(extracted.provider);
+        }
+        if (extracted.issue_date) {
+          setIssueDate(extracted.issue_date);
+        }
+        if (showCategory && extracted.category) {
+          setCategory(extracted.category);
+        }
+
+        const confidence = extracted.confidence || {};
+        setLowConfidenceFields({
+          certificate_name: confidence.certificate_name === false,
+          provider: confidence.provider === false,
+          issue_date: confidence.issue_date === false,
+          category: confidence.category === false,
+        });
+      }
+      setExtractionDone(true);
+    } catch (err) {
+      // Extraction failing is never fatal - the user just falls back
+      // to filling the fields in manually, exactly as before this
+      // feature existed.
+      setExtractionDone(false);
+    } finally {
+      setExtracting(false);
     }
   };
 
@@ -110,85 +173,6 @@ export default function UploadCertificateModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-gray-400 text-sm">
-              Certificate Name
-              {!requireDetails && (
-                <span className="text-gray-500"> (Optional)</span>
-              )}
-            </label>
-            <input
-              type="text"
-              value={certificateName}
-              onChange={(e) => setCertificateName(e.target.value)}
-              disabled={lockNameAndProvider}
-              placeholder="e.g. Google Data Analytics Professional Certificate"
-              className={`${INPUT_CLASS} disabled:opacity-60`}
-            />
-            {!requireDetails && (
-              <p className="text-gray-500 text-xs mt-1.5">
-                Leave blank to use the file name.
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="text-gray-400 text-sm">
-              Provider
-              {!requireDetails && (
-                <span className="text-gray-500"> (Optional)</span>
-              )}
-            </label>
-            <input
-              type="text"
-              value={provider}
-              onChange={(e) => setProvider(e.target.value)}
-              disabled={lockNameAndProvider}
-              placeholder="e.g. Google, AWS, Coursera"
-              className={`${INPUT_CLASS} disabled:opacity-60`}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-gray-400 text-sm">
-                Issue Date
-                {!requireDetails && (
-                  <span className="text-gray-500"> (Optional)</span>
-                )}
-              </label>
-              <input
-                type="date"
-                value={issueDate}
-                onChange={(e) => setIssueDate(e.target.value)}
-                max={new Date().toISOString().split("T")[0]}
-                className={INPUT_CLASS}
-              />
-            </div>
-
-            {showCategory && (
-              <div>
-                <label className="text-gray-400 text-sm">
-                  Category
-                  {!requireDetails && (
-                    <span className="text-gray-500"> (Optional)</span>
-                  )}
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className={INPUT_CLASS}
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="text-gray-400 text-sm">
               Certificate PDF or Image
             </label>
             <label
@@ -210,6 +194,122 @@ export default function UploadCertificateModal({
                 className="hidden"
               />
             </label>
+
+            {enableAiExtraction && extracting && (
+              <p className="text-cyan-300 text-xs mt-2 flex items-center gap-1.5">
+                <RefreshCw className="animate-spin" size={12} />
+                Reading your certificate with AI...
+              </p>
+            )}
+            {enableAiExtraction && extractionDone && !extracting && (
+              <p className="text-green-300 text-xs mt-2 flex items-center gap-1.5">
+                <Sparkles size={12} />
+                We've pre-filled what we could read below - please check it over.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-gray-400 text-sm">
+              Certificate Name
+              {!requireDetails && (
+                <span className="text-gray-500"> (Optional)</span>
+              )}
+            </label>
+            <input
+              type="text"
+              value={certificateName}
+              onChange={(e) => setCertificateName(e.target.value)}
+              disabled={lockNameAndProvider}
+              placeholder="e.g. Google Data Analytics Professional Certificate"
+              className={`${INPUT_CLASS} disabled:opacity-60`}
+            />
+            {!requireDetails && !lowConfidenceFields.certificate_name && (
+              <p className="text-gray-500 text-xs mt-1.5">
+                Leave blank to use the file name.
+              </p>
+            )}
+            {lowConfidenceFields.certificate_name && (
+              <p className="text-yellow-400 text-xs mt-1.5 flex items-center gap-1.5">
+                <AlertTriangle size={12} />
+                We weren't fully confident about this - please double-check it.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-gray-400 text-sm">
+              Provider
+              {!requireDetails && (
+                <span className="text-gray-500"> (Optional)</span>
+              )}
+            </label>
+            <input
+              type="text"
+              value={provider}
+              onChange={(e) => setProvider(e.target.value)}
+              disabled={lockNameAndProvider}
+              placeholder="e.g. Google, AWS, Coursera"
+              className={`${INPUT_CLASS} disabled:opacity-60`}
+            />
+            {lowConfidenceFields.provider && (
+              <p className="text-yellow-400 text-xs mt-1.5 flex items-center gap-1.5">
+                <AlertTriangle size={12} />
+                We weren't fully confident about this - please double-check it.
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-gray-400 text-sm">
+                Issue Date
+                {!requireDetails && (
+                  <span className="text-gray-500"> (Optional)</span>
+                )}
+              </label>
+              <input
+                type="date"
+                value={issueDate}
+                onChange={(e) => setIssueDate(e.target.value)}
+                max={new Date().toISOString().split("T")[0]}
+                className={INPUT_CLASS}
+              />
+              {lowConfidenceFields.issue_date && (
+                <p className="text-yellow-400 text-xs mt-1.5 flex items-center gap-1">
+                  <AlertTriangle size={12} />
+                  Please verify
+                </p>
+              )}
+            </div>
+
+            {showCategory && (
+              <div>
+                <label className="text-gray-400 text-sm">
+                  Category
+                  {!requireDetails && (
+                    <span className="text-gray-500"> (Optional)</span>
+                  )}
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className={INPUT_CLASS}
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+                {lowConfidenceFields.category && (
+                  <p className="text-yellow-400 text-xs mt-1.5 flex items-center gap-1">
+                    <AlertTriangle size={12} />
+                    Please verify
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {error && <p className="text-red-400 text-sm">{error}</p>}

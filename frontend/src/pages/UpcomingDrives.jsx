@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import api from "../services/api";
+import { getCurrentUser } from "../utils/session";
 import {
   Building2,
   MapPin,
@@ -11,6 +12,8 @@ import {
   ExternalLink,
   X,
   RefreshCw,
+  ChevronDown,
+  Sparkles,
 } from "lucide-react";
 
 const EMPLOYMENT_TYPE_STYLES = {
@@ -105,19 +108,98 @@ function ApplyButton({ drive, className = "" }) {
   );
 }
 
+// Same card design as before - untouched. Pulled into its own
+// component purely so it can be rendered for both the Top 10
+// Recommended section and the Browse More section without duplicating
+// the JSX.
+function DriveCard({ drive, onViewDetails }) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/5 p-7 hover:border-cyan-400/40 transition-all duration-300">
+      <div className="flex justify-between items-start gap-4">
+        <div className="flex items-center gap-3">
+          <CompanyLogo src={drive.company_logo} alt={drive.company_name} />
+          <div>
+            <h2 className="text-2xl font-bold text-white">{drive.company_name}</h2>
+            <p className="text-gray-400">{drive.role}</p>
+          </div>
+        </div>
+
+        <span
+          className={`
+            px-3 py-1.5 rounded-full text-xs font-semibold border whitespace-nowrap
+            ${EMPLOYMENT_TYPE_STYLES[drive.employment_type] || EMPLOYMENT_TYPE_STYLES["Full Time"]}
+          `}
+        >
+          {drive.employment_type}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mt-7">
+        <div className="flex items-center gap-2 text-gray-300">
+          <MapPin size={18} />
+          {drive.location || "Not specified"}
+        </div>
+
+        <div className="flex items-center gap-2 text-gray-300">
+          <IndianRupee size={18} />
+          {drive.salary || "Not disclosed"}
+        </div>
+
+        <div className="flex items-center gap-2 text-gray-300">
+          <Calendar size={18} />
+          {formatDeadline(drive.deadline)}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Clock size={18} className="text-gray-400" />
+          <DaysLeftBadge deadline={drive.deadline} />
+        </div>
+      </div>
+
+      <div className="flex gap-4 mt-8">
+        <button
+          onClick={() => onViewDetails(drive)}
+          className="
+            flex-1 py-3 rounded-xl
+            border border-cyan-400 text-cyan-400
+            hover:bg-cyan-500/10 transition
+            flex justify-center items-center gap-2 font-semibold
+          "
+        >
+          View Details
+        </button>
+
+        <ApplyButton drive={drive} className="flex-1" />
+      </div>
+    </div>
+  );
+}
+
 export default function UpcomingDrives() {
-  const [drives, setDrives] = useState([]);
+  const [recommended, setRecommended] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedDrive, setSelectedDrive] = useState(null);
 
-  const loadDrives = async () => {
+  // Browse More is loaded lazily (only on click) and only ever holds
+  // drives NOT already shown in the Top 10 above, so the two lists
+  // never duplicate.
+  const [browseMoreOpen, setBrowseMoreOpen] = useState(false);
+  const [browseMoreLoading, setBrowseMoreLoading] = useState(false);
+  const [browseMoreDrives, setBrowseMoreDrives] = useState(null);
+
+  const email = getCurrentUser()?.email;
+
+  const loadRecommended = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await api.get("/placement-drives");
-      setDrives(response.data?.data || []);
+      const response = email
+        ? await api.get(`/placement-drives/recommended/${email}`)
+        : await api.get("/placement-drives", { params: { limit: 10 } });
+
+      setRecommended(response.data?.data || []);
     } catch (err) {
       console.error("Error fetching placement drives:", err);
       setError(
@@ -130,8 +212,36 @@ export default function UpcomingDrives() {
   };
 
   useEffect(() => {
-    loadDrives();
+    loadRecommended();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleBrowseMore = async () => {
+    if (browseMoreOpen) {
+      setBrowseMoreOpen(false);
+      return;
+    }
+
+    setBrowseMoreOpen(true);
+
+    if (browseMoreDrives !== null) return; // already loaded once this visit
+
+    try {
+      setBrowseMoreLoading(true);
+      // Keeps the existing sorting (nearest deadline first) and the
+      // existing "exclude expired" behaviour untouched - this is the
+      // same endpoint the page always used, unfiltered by relevance.
+      const response = await api.get("/placement-drives");
+      const recommendedIds = new Set(recommended.map((d) => d.id));
+      const rest = (response.data?.data || []).filter((d) => !recommendedIds.has(d.id));
+      setBrowseMoreDrives(rest);
+    } catch (err) {
+      console.error("Error fetching remaining placement drives:", err);
+      setBrowseMoreDrives([]);
+    } finally {
+      setBrowseMoreLoading(false);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -159,7 +269,7 @@ export default function UpcomingDrives() {
         <div className="rounded-3xl border border-red-500/30 bg-red-500/5 p-12 flex flex-col items-center justify-center gap-4">
           <p className="text-red-300 text-lg text-center">{error}</p>
           <button
-            onClick={loadDrives}
+            onClick={loadRecommended}
             className="px-5 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 font-medium hover:bg-red-500/20"
           >
             Try Again
@@ -168,7 +278,7 @@ export default function UpcomingDrives() {
       )}
 
       {/* Empty state */}
-      {!loading && !error && drives.length === 0 && (
+      {!loading && !error && recommended.length === 0 && (
         <div className="rounded-3xl border border-white/10 bg-white/5 p-12 flex flex-col items-center justify-center gap-2">
           <Briefcase className="text-gray-500" size={36} />
           <p className="text-gray-300 text-lg">No active drives right now.</p>
@@ -176,73 +286,66 @@ export default function UpcomingDrives() {
         </div>
       )}
 
-      {/* Drive Cards */}
-      {!loading && !error && drives.length > 0 && (
-        <div className="grid lg:grid-cols-2 gap-6">
-          {drives.map((drive) => (
-            <div
-              key={drive.id}
-              className="rounded-3xl border border-white/10 bg-white/5 p-7 hover:border-cyan-400/40 transition-all duration-300"
+      {/* Top 10 Recommended */}
+      {!loading && !error && recommended.length > 0 && (
+        <>
+          <div className="flex items-center gap-2 mb-5">
+            <Sparkles className="text-cyan-400" size={22} />
+            <h2 className="text-xl font-bold text-white">Top 10 Recommended Placement Drives</h2>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6 mb-10">
+            {recommended.map((drive) => (
+              <DriveCard key={drive.id} drive={drive} onViewDetails={setSelectedDrive} />
+            ))}
+          </div>
+
+          {/* Browse More - collapsed by default so the remaining drives
+              don't clutter the page; loaded lazily on first click. */}
+          <div className="mb-6">
+            <button
+              onClick={handleBrowseMore}
+              className="
+                flex items-center gap-2 mx-auto
+                px-6 py-3 rounded-xl
+                border border-white/10 bg-white/5
+                text-gray-200 font-medium
+                hover:bg-white/10 transition
+              "
             >
-              <div className="flex justify-between items-start gap-4">
-                <div className="flex items-center gap-3">
-                  <CompanyLogo src={drive.company_logo} alt={drive.company_name} />
-                  <div>
-                    <h2 className="text-2xl font-bold text-white">{drive.company_name}</h2>
-                    <p className="text-gray-400">{drive.role}</p>
-                  </div>
+              <ChevronDown
+                size={18}
+                className={`transition-transform ${browseMoreOpen ? "rotate-180" : ""}`}
+              />
+              {browseMoreOpen ? "Hide" : "Browse More Placement Drives"}
+            </button>
+          </div>
+
+          {browseMoreOpen && (
+            <div>
+              {browseMoreLoading && (
+                <div className="flex items-center justify-center gap-3 text-gray-400 py-10">
+                  <RefreshCw className="animate-spin" size={20} />
+                  Loading more drives...
                 </div>
+              )}
 
-                <span
-                  className={`
-                    px-3 py-1.5 rounded-full text-xs font-semibold border whitespace-nowrap
-                    ${EMPLOYMENT_TYPE_STYLES[drive.employment_type] || EMPLOYMENT_TYPE_STYLES["Full Time"]}
-                  `}
-                >
-                  {drive.employment_type}
-                </span>
-              </div>
+              {!browseMoreLoading && browseMoreDrives && browseMoreDrives.length === 0 && (
+                <p className="text-gray-400 text-center py-6">
+                  No additional active drives right now.
+                </p>
+              )}
 
-              <div className="grid grid-cols-2 gap-4 mt-7">
-                <div className="flex items-center gap-2 text-gray-300">
-                  <MapPin size={18} />
-                  {drive.location || "Not specified"}
+              {!browseMoreLoading && browseMoreDrives && browseMoreDrives.length > 0 && (
+                <div className="grid lg:grid-cols-2 gap-6">
+                  {browseMoreDrives.map((drive) => (
+                    <DriveCard key={drive.id} drive={drive} onViewDetails={setSelectedDrive} />
+                  ))}
                 </div>
-
-                <div className="flex items-center gap-2 text-gray-300">
-                  <IndianRupee size={18} />
-                  {drive.salary || "Not disclosed"}
-                </div>
-
-                <div className="flex items-center gap-2 text-gray-300">
-                  <Calendar size={18} />
-                  {formatDeadline(drive.deadline)}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Clock size={18} className="text-gray-400" />
-                  <DaysLeftBadge deadline={drive.deadline} />
-                </div>
-              </div>
-
-              <div className="flex gap-4 mt-8">
-                <button
-                  onClick={() => setSelectedDrive(drive)}
-                  className="
-                    flex-1 py-3 rounded-xl
-                    border border-cyan-400 text-cyan-400
-                    hover:bg-cyan-500/10 transition
-                    flex justify-center items-center gap-2 font-semibold
-                  "
-                >
-                  View Details
-                </button>
-
-                <ApplyButton drive={drive} className="flex-1" />
-              </div>
+              )}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       {/* Details Modal */}

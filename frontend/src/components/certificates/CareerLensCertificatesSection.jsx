@@ -10,9 +10,7 @@ const CATEGORY_LABELS = {
   "AI/ML": "AI / ML",
 };
 
-// Matches MyCertificatesSection's value so both columns stay visually
-// balanced regardless of how many certificates either one has.
-const LIST_MAX_HEIGHT = 460;
+const CARD_WIDTH = 300;
 
 export default function CareerLensCertificatesSection({
   certificates,
@@ -22,11 +20,11 @@ export default function CareerLensCertificatesSection({
   return (
     <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6 flex flex-col">
       <style>{`
-        .cl-cert-scroll::-webkit-scrollbar { width: 6px; }
-        .cl-cert-scroll::-webkit-scrollbar-track { background: transparent; }
-        .cl-cert-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 9999px; }
-        .cl-cert-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
-        .cl-cert-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+        .cl-cert-hscroll::-webkit-scrollbar { height: 6px; }
+        .cl-cert-hscroll::-webkit-scrollbar-track { background: transparent; }
+        .cl-cert-hscroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 9999px; }
+        .cl-cert-hscroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+        .cl-cert-hscroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
       `}</style>
 
       <div className="flex items-start justify-between gap-3 mb-1">
@@ -69,17 +67,15 @@ export default function CareerLensCertificatesSection({
             </p>
           </div>
         ) : (
-          <div
-            className="cl-cert-scroll space-y-3 overflow-y-auto pr-1"
-            style={{ maxHeight: LIST_MAX_HEIGHT }}
-          >
+          <div className="cl-cert-hscroll flex gap-4 overflow-x-auto overflow-y-hidden pb-2">
             {certificates.map((cert) => {
               const categoryLabel =
                 CATEGORY_LABELS[cert.category] || cert.category;
               return (
                 <div
                   key={cert.id}
-                  className="rounded-2xl border border-white/10 bg-[#0B1120] p-4"
+                  className="rounded-2xl border border-white/10 bg-[#0B1120] p-4 flex-shrink-0"
+                  style={{ width: CARD_WIDTH }}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">

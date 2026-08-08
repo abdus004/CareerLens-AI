@@ -161,14 +161,28 @@ def _attach_job_details(matches: list) -> list:
     return enriched
 
 
+
+# Job Recommendations shows "Top Recommended Jobs" - target 6-10,
+# capped at 10 even when the active Job Master database is much
+# larger than that (see JOB_RECOMMENDATIONS_LIMIT below).
+JOB_RECOMMENDATIONS_LIMIT = 10
+
+
 def _generate_and_save_recommendations(email: str):
     """
     The actual "Reanalyze" logic: recomputes match scores and rankings
     from whatever is currently stored in Profile, Skill Analysis,
     Career Intelligence and Resume Data. Scoring is fully deterministic
     (job_matching_service.py), so identical inputs always produce an
-    identical Top 3 - rankings only move when the user's underlying
+    identical Top N - rankings only move when the user's underlying
     data has genuinely changed.
+
+    Shows up to JOB_RECOMMENDATIONS_LIMIT (10) jobs - as many as exist
+    if the active Job Master database has fewer than that. total_matching
+    is the size of the full active pool these were ranked against
+    (surfaced by the frontend as "Showing X of Y matching jobs") - both
+    X and Y are always read straight from the database/query results,
+    never hardcoded.
     """
     profile, skill_analysis, career_analysis, resume_data = _load_user_context(email)
 
@@ -180,8 +194,10 @@ def _generate_and_save_recommendations(email: str):
         )
 
     top_matches = get_top_matches(
-        jobs, profile, skill_analysis, career_analysis, resume_data, limit=3
+        jobs, profile, skill_analysis, career_analysis, resume_data,
+        limit=JOB_RECOMMENDATIONS_LIMIT,
     )
+    total_matching = len(jobs)
 
     fingerprint = compute_match_fingerprint(
         profile, skill_analysis, career_analysis, resume_data
@@ -196,11 +212,12 @@ def _generate_and_save_recommendations(email: str):
             "email": email,
             "recommendations": top_matches,
             "match_inputs_fingerprint": fingerprint,
+            "total_matching": total_matching,
         },
         on_conflict="email"
     ).execute()
 
-    return _attach_job_details(top_matches)
+    return _attach_job_details(top_matches), total_matching
 
 
 # ------------------------------------------------------------------
@@ -231,6 +248,9 @@ def get_job_recommendations(email: str):
         return {
             "recommendations": _attach_job_details(response.data["recommendations"]),
             "updated_at": response.data["updated_at"],
+            # .get() with a default: rows saved before the total_matching
+            # column existed simply read back as 0 instead of erroring.
+            "total_matching": response.data.get("total_matching", 0),
         }
 
     except HTTPException:
@@ -249,8 +269,8 @@ def analyze_jobs(email: str):
     Gemini for ranking/matching/filtering - see job_matching_service.py.
     """
     try:
-        recommendations = _generate_and_save_recommendations(email)
-        return {"recommendations": recommendations}
+        recommendations, total_matching = _generate_and_save_recommendations(email)
+        return {"recommendations": recommendations, "total_matching": total_matching}
 
     except HTTPException:
         raise

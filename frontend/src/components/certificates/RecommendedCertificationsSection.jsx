@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Sparkles,
   ExternalLink,
@@ -7,10 +8,7 @@ import {
   Eye,
 } from "lucide-react";
 
-const PROGRESS_STEPS = [0, 25, 50, 75, 100];
-
-const SELECT_CLASS =
-  "rounded-lg bg-[#0B1120] border border-white/10 py-1.5 px-2 text-white text-sm outline-none focus:border-cyan-500 transition";
+const CARD_WIDTH = 340;
 
 function RecommendationCard({
   recommendation,
@@ -29,8 +27,27 @@ function RecommendationCard({
     progress_percent,
   } = recommendation;
 
+  // Local mirror of progress so the slider handle/label track the
+  // drag smoothly. Only committed to the parent (and the PUT request)
+  // once the user releases the slider - not on every pixel of drag -
+  // so scrubbing from 0 to 100 fires one API call, not fifty.
+  const [localProgress, setLocalProgress] = useState(progress_percent);
+
+  useEffect(() => {
+    setLocalProgress(progress_percent);
+  }, [progress_percent]);
+
+  const commitProgress = () => {
+    if (localProgress !== progress_percent) {
+      onProgressChange(recommendation.id, localProgress);
+    }
+  };
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#0B1120] p-5 flex flex-col">
+    <div
+      className="rounded-2xl border border-white/10 bg-[#0B1120] p-5 flex flex-col flex-shrink-0"
+      style={{ width: CARD_WIDTH }}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-white font-semibold leading-snug">
@@ -55,32 +72,31 @@ function RecommendationCard({
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-gray-400 text-xs">Progress</span>
           <span className="text-white text-xs font-semibold">
-            {progress_percent}%
+            {localProgress}%
           </span>
         </div>
         <div className="w-full h-2.5 rounded-full bg-gray-700 overflow-hidden">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 transition-all duration-500"
-            style={{ width: `${progress_percent}%` }}
+            className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 transition-all duration-150"
+            style={{ width: `${localProgress}%` }}
           />
         </div>
 
-        <div className="flex items-center justify-between mt-2">
+        <div className="mt-3">
           <label className="text-gray-500 text-xs">Update progress</label>
-          <select
-            value={progress_percent}
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={localProgress}
             disabled={updatingProgress}
-            onChange={(e) =>
-              onProgressChange(recommendation.id, Number(e.target.value))
-            }
-            className={SELECT_CLASS}
-          >
-            {PROGRESS_STEPS.map((step) => (
-              <option key={step} value={step}>
-                {step}%
-              </option>
-            ))}
-          </select>
+            onChange={(e) => setLocalProgress(Number(e.target.value))}
+            onMouseUp={commitProgress}
+            onTouchEnd={commitProgress}
+            onKeyUp={commitProgress}
+            className="w-full mt-1.5 accent-cyan-500 disabled:opacity-50"
+          />
         </div>
       </div>
 
@@ -179,7 +195,14 @@ export default function RecommendedCertificationsSection({
             </button>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div className="cl-cert-hscroll flex gap-5 overflow-x-auto overflow-y-hidden pb-2">
+            <style>{`
+              .cl-cert-hscroll::-webkit-scrollbar { height: 6px; }
+              .cl-cert-hscroll::-webkit-scrollbar-track { background: transparent; }
+              .cl-cert-hscroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 9999px; }
+              .cl-cert-hscroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+              .cl-cert-hscroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+            `}</style>
             {recommendations.map((rec) => (
               <RecommendationCard
                 key={rec.id}

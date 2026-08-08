@@ -4,7 +4,11 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.database.db import supabase
 from app.models.certificates import UpdateProgressRequest
-from app.services import certificate_recommendation_service, user_certificate_service
+from app.services import (
+    certificate_ai_service,
+    certificate_recommendation_service,
+    user_certificate_service,
+)
 
 router = APIRouter(
     prefix="/certificates",
@@ -50,6 +54,38 @@ CERTIFICATE_CATEGORIES = {
 ALLOWED_UPLOAD_CONTENT_TYPES = {
     "application/pdf", "image/png", "image/jpeg", "image/jpg", "image/webp",
 }
+
+
+@router.post("/extract")
+async def extract_certificate(file: UploadFile = File(...)):
+    """
+    Step 1 of the Upload Certificate "AI Extraction" flow (see
+    certificate_ai_service.extract_certificate_fields, which reuses the
+    existing Gemini client - no second client/system). Reads the file
+    and returns extracted fields plus a per-field confidence flag; it
+    does NOT save anything - the user still confirms/corrects the
+    result before POST /certificates/my actually persists it. Safe to
+    call as often as the user re-uploads a different file; nothing here
+    is cached, since re-extracting the same file twice is a normal part
+    of "let me try a clearer photo" and isn't the repeated-Gemini-call
+    pattern the product spec warns against (that's about not
+    regenerating unchanged AI *recommendations*, not about skipping a
+    user-initiated read of a brand new file).
+    """
+    if file.content_type not in ALLOWED_UPLOAD_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail="Please upload a PDF or image file (PNG, JPG, or WEBP).",
+        )
+
+    try:
+        file_bytes = await file.read()
+        extracted = certificate_ai_service.extract_certificate_fields(
+            file_bytes, file.content_type
+        )
+        return {"success": True, "data": extracted}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/my")
@@ -100,6 +136,20 @@ async def upload_my_certificate(
 
     try:
         file_bytes = await file.read()
+
+        # Relevance is assessed against the FINAL, user-confirmed
+        # fields (not the raw AI extraction), since the user may have
+        # corrected them - see certificate_ai_service.assess_certificate_relevance.
+        # This never blocks the save: on any failure it defaults to
+        # "not relevant", matching the spec's "do NOT artificially
+        # increase scores" default.
+        relevance = certificate_ai_service.assess_certificate_relevance(
+            email=email,
+            certificate_name=(certificate_name or "").strip() or "Untitled Certificate",
+            provider=(provider or "").strip() or "Not specified",
+            category=(category or "").strip() or "Other",
+        )
+
         row = user_certificate_service.add_user_certificate(
             email=email,
             certificate_name=certificate_name,
@@ -109,6 +159,8 @@ async def upload_my_certificate(
             file_bytes=file_bytes,
             original_filename=file.filename or "certificate",
             content_type=file.content_type,
+            career_relevant=relevance["career_relevant"],
+            relevance_note=relevance["relevance_note"],
         )
         return {"success": True, "data": row}
     except HTTPException:
@@ -202,6 +254,15 @@ async def complete_recommendation(
             file_bytes=file_bytes,
             original_filename=file.filename or "certificate",
             content_type=file.content_type,
+            # A completed Recommended Certification is relevant by
+            # construction - certificate_recommendation_service only
+            # ever generates recommendations targeted at this exact
+            # student's career path, so re-asking Gemini to judge
+            # relevance here would be a duplicate call the spec
+            # explicitly warns against ("Do NOT unnecessarily call
+            # Gemini if the existing... system can perform" the job).
+            career_relevant=True,
+            relevance_note="Completed from your personalized certificate recommendations.",
         )
         return {"success": True, "data": row}
     except ValueError as e:
