@@ -2,13 +2,18 @@ import { Award, FolderCheck, Sparkles, Layers, Clock, CheckCircle2 } from "lucid
 
 function StatCard({ icon: Icon, label, value, accent }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex items-center gap-3">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${accent}`}>
-        <Icon size={18} />
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 flex items-center gap-4">
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${accent}`}>
+        <Icon size={20} />
       </div>
       <div className="min-w-0">
         <p className="text-2xl font-bold text-white leading-none">{value}</p>
-        <p className="text-gray-400 text-xs mt-1 truncate">{label}</p>
+        {/* No truncation - the label is allowed to wrap onto a second
+            line instead of being cut off with an ellipsis. Cards are
+            wide enough (3 per row on desktop, not 6) that most labels
+            fit on one line anyway; leading-snug just keeps the ones
+            that do wrap tight and readable. */}
+        <p className="text-gray-400 text-sm mt-1.5 leading-snug">{label}</p>
       </div>
     </div>
   );
@@ -39,7 +44,13 @@ export default function CertificateAnalytics({
   const completed = myCertificates.filter((c) => c.source === "recommendation").length;
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+    // 3 columns on desktop = exactly the requested 2 rows x 3 columns
+    // (Total / My / CareerLens on row 1, Recommended / Ongoing /
+    // Completed on row 2), since the 6 cards below are already in
+    // that exact order and grid auto-flow fills left-to-right,
+    // top-to-bottom. Narrower screens step down to 2 then 1 column
+    // instead of staying cramped at 3.
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
       <StatCard
         icon={Layers}
         label="Total Certificates"

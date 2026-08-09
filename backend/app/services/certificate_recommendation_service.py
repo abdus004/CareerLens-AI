@@ -4,16 +4,25 @@ from datetime import datetime, timezone
 from app.database.db import supabase
 from app.ai.gemini import generate_json
 from app.ai.prompts import certificate_recommendation_prompt
+from app.services.job_matching_service import compute_match_fingerprint
 
 # ---------------------------------------------------------------------
 # Recommended Certifications (Section 3 of the Certificates page).
 #
-# Gemini is called EXACTLY ONCE per email, ever - see
-# get_or_generate_recommendations below. The result is persisted in
-# certificate_recommendations + certificate_progress, and a permanent
-# marker row in certificate_recommendation_status ensures a retry can
-# never re-trigger generation, even after every recommendation has
-# since been completed and removed from that table.
+# Gemini is called ONLY when there is no prior recommendation set for
+# this email, OR when a fingerprint of everything the recommendation
+# depends on (Profile / Skill Analysis / Career Intelligence / Resume
+# Data) has changed since the last time it was generated - see
+# get_or_generate_recommendations below. compute_match_fingerprint is
+# the exact same hashing utility Job Recommendations already uses to
+# detect staleness (job_match_explanations) - reused here rather than
+# reimplemented, so "what counts as a career-profile change" has one
+# single definition across the whole app.
+#
+# The fingerprint check itself is cheap (a handful of already-indexed
+# selects + a hash comparison) and runs on every GET, matching the
+# product requirement that opening the Certificates page never
+# triggers a Gemini call on its own - only a genuine change does.
 # ---------------------------------------------------------------------
 
 VALID_PROVIDERS = {
@@ -86,11 +95,15 @@ def _load_json_field(value, default):
 
 def _gather_profile_context(email: str):
     """
-    Returns (context_dict, missing_reason) - context_dict is None (with
-    a human-readable missing_reason) unless BOTH Resume Analysis and
-    Skill Analysis have already completed for this email, exactly as
-    the spec requires before the one-time Gemini call is allowed to
-    run.
+    Returns (context_dict, missing_reason, fingerprint_inputs).
+    context_dict is None (with a human-readable missing_reason) unless
+    BOTH Resume Analysis and Skill Analysis have already completed for
+    this email, exactly as the spec requires before a Gemini call is
+    ever allowed to run. fingerprint_inputs is always returned (even
+    when context_dict is None) as the raw (profile, skill_analysis,
+    career_analysis, resume_data) tuple compute_match_fingerprint
+    expects - callers that only need to check staleness (not generate)
+    can use it without a second round of queries.
     """
     resume_analysis = (
         supabase.table("resume_analysis").select("*").eq("email", email).maybe_single().execute()
@@ -101,12 +114,6 @@ def _gather_profile_context(email: str):
 
     resume_row = resume_analysis.data if resume_analysis and resume_analysis.data else None
     skill_row = skill_analysis.data if skill_analysis and skill_analysis.data else None
-
-    if not resume_row or not skill_row:
-        return None, (
-            "Complete Resume Analysis and Skill Analysis to unlock "
-            "AI-powered certification recommendations."
-        )
 
     resume_data = (
         supabase.table("resume_data").select("*").eq("email", email).maybe_single().execute()
@@ -122,7 +129,20 @@ def _gather_profile_context(email: str):
     career_row = (career_analysis.data if career_analysis and career_analysis.data else {}).get("analysis") or {}
     profile_row = profile.data if profile and profile.data else {}
 
-    skill_payload = skill_row.get("analysis") or {}
+    fingerprint_inputs = (
+        profile_row,
+        (skill_row or {}).get("analysis") or {},
+        career_row,
+        resume_data_row,
+    )
+
+    if not resume_row or not skill_row:
+        return None, (
+            "Complete Resume Analysis and Skill Analysis to unlock "
+            "AI-powered certification recommendations."
+        ), fingerprint_inputs
+
+    skill_payload = (skill_row or {}).get("analysis") or {}
     if not isinstance(skill_payload, dict):
         skill_payload = {}
 
@@ -141,7 +161,7 @@ def _gather_profile_context(email: str):
             "year": profile_row.get("year", ""),
         },
     }
-    return context, None
+    return context, None, fingerprint_inputs
 
 
 def _read_recommendations(email: str) -> dict:
@@ -199,25 +219,58 @@ def reset_for_new_resume(email: str) -> None:
 
 def get_or_generate_recommendations(email: str) -> dict:
     """
-    Reads the persisted Top-5 recommendations for this email if they
-    have EVER been generated before (see certificate_recommendation_status),
-    otherwise - only if Resume Analysis and Skill Analysis have both
-    completed - makes exactly one Gemini call, persists the result, and
-    marks it as generated so it can never happen again for this email.
+    Reads the persisted Top-5 recommendations for this email. Makes a
+    Gemini call - and only then - when either:
+
+      (a) recommendations have never been generated for this email, or
+      (b) they have, but compute_match_fingerprint of the student's
+          current Profile/Skill Analysis/Career Intelligence/Resume
+          Data no longer matches the fingerprint stored at the time
+          they were last generated - i.e. something the recommendation
+          genuinely depends on has actually changed, not just "some
+          page got visited."
+
+    Prerequisites (Resume Analysis + Skill Analysis) are still
+    required before the very first generation can happen, same as
+    before.
     """
+    context, missing_reason, fingerprint_inputs = _gather_profile_context(email)
+
     status = (
         supabase.table("certificate_recommendation_status")
-        .select("email")
+        .select("email, match_inputs_fingerprint")
         .eq("email", email)
         .maybe_single()
         .execute()
     )
     already_generated = bool(status and status.data)
 
-    if not already_generated:
-        context, missing_reason = _gather_profile_context(email)
+    current_fingerprint = compute_match_fingerprint(*fingerprint_inputs) if context is not None else None
+    stored_fingerprint = (status.data or {}).get("match_inputs_fingerprint") if already_generated else None
+
+    is_stale = (
+        already_generated
+        and context is not None
+        and stored_fingerprint is not None
+        and stored_fingerprint != current_fingerprint
+    )
+
+    needs_generation = (not already_generated) or is_stale
+
+    if needs_generation:
         if context is None:
+            # Never generated yet, and prerequisites still aren't
+            # done - nothing to regenerate either way.
             return {"ready": False, "message": missing_reason, "recommendations": []}
+
+        if is_stale:
+            # The student's career-relevant data has genuinely
+            # changed since the last generation - clear the old Top-5
+            # (and their progress) before replacing them, exactly like
+            # reset_for_new_resume already does for a resume swap.
+            # This is NOT triggered just because the page was opened.
+            supabase.table("certificate_progress").delete().eq("email", email).execute()
+            supabase.table("certificate_recommendations").delete().eq("email", email).execute()
 
         prompt = certificate_recommendation_prompt(context)
         result = generate_json(prompt)
@@ -255,9 +308,14 @@ def get_or_generate_recommendations(email: str) -> dict:
 
         # Marked as generated regardless of how many rows came back, so
         # even a partial/odd Gemini response can never trigger a retry
-        # (and therefore another paid call) on a later page load.
+        # (and therefore another paid call) on a later page load -
+        # only a genuine future fingerprint change will.
         supabase.table("certificate_recommendation_status").upsert(
-            {"email": email, "generated_at": datetime.now(timezone.utc).isoformat()},
+            {
+                "email": email,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "match_inputs_fingerprint": current_fingerprint,
+            },
             on_conflict="email",
         ).execute()
 

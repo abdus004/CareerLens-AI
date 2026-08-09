@@ -7,6 +7,7 @@ from app.routes.career import generate_career_analysis
 from app.database.db import supabase
 from app.ai.gemini import generate_json
 from app.ai.prompts import skill_analysis_prompt
+from app.services.certificate_bonus_service import get_certificate_bonus, apply_bonus
 
 router = APIRouter(
     prefix="/skills",
@@ -214,7 +215,18 @@ def get_skill_analysis(email: str):
                 detail="Skill analysis not found."
             )
 
-        return response.data["analysis"]
+        # The stored analysis itself is never modified - a small,
+        # deterministic bonus for career-relevant completed
+        # certificates is layered on top only in this response. See
+        # services/certificate_bonus_service.py.
+        analysis = dict(response.data["analysis"] or {})
+        bonus_info = get_certificate_bonus(email)
+        if bonus_info["bonus"]:
+            analysis["overall_score"] = apply_bonus(analysis.get("overall_score"), bonus_info["bonus"])
+        analysis["certificate_bonus"] = bonus_info["bonus"]
+        analysis["relevant_certificate_count"] = bonus_info["relevant_certificate_count"]
+
+        return analysis
 
     except HTTPException:
         raise

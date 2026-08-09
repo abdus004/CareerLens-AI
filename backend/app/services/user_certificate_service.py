@@ -252,15 +252,33 @@ def update_progress(recommendation_id: str, email: str, progress_percent: int) -
     if not isinstance(progress_percent, int) or progress_percent < 0 or progress_percent > 100:
         raise ValueError("progress_percent must be a whole number between 0 and 100.")
 
-    updated = (
+    # upsert, not a plain update+eq: certificate_progress's primary key
+    # IS recommendation_id, so a plain UPDATE ... WHERE recommendation_id=
+    # would silently affect zero rows (no exception, no data written)
+    # if a progress row somehow doesn't already exist for this
+    # recommendation - the classic "looks successful, nothing actually
+    # saved" bug. Upserting guarantees the row exists with the new
+    # value either way, and if Supabase still returns no row back
+    # (e.g. an RLS policy silently blocking the write), that's now
+    # surfaced as a real error below instead of a false success.
+    upserted = (
         supabase.table("certificate_progress")
-        .update(
+        .upsert(
             {
+                "recommendation_id": recommendation_id,
+                "email": email,
                 "progress_percent": progress_percent,
                 "updated_at": datetime.now(timezone.utc).isoformat(),
-            }
+            },
+            on_conflict="recommendation_id",
         )
-        .eq("recommendation_id", recommendation_id)
         .execute()
     )
-    return updated.data[0] if updated.data else {"recommendation_id": recommendation_id, "progress_percent": progress_percent}
+
+    if not upserted or not upserted.data:
+        raise ValueError(
+            "Progress could not be saved. This usually means a database "
+            "permission (RLS policy) is blocking the write to certificate_progress."
+        )
+
+    return upserted.data[0]

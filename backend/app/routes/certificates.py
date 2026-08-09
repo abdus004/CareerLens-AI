@@ -1,6 +1,8 @@
 from typing import Optional
+import logging
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from postgrest.exceptions import APIError
 
 from app.database.db import supabase
 from app.models.certificates import UpdateProgressRequest
@@ -10,10 +12,31 @@ from app.services import (
     user_certificate_service,
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(
     prefix="/certificates",
     tags=["Certificates"],
 )
+
+
+def _raise_clean_500(e: Exception):
+    """
+    Never surface a raw Supabase/Postgres error (a Python dict repr
+    like {'message': ..., 'code': '23514', 'hint': ..., 'details': ...})
+    directly to the user - the frontend displays HTTPException.detail
+    verbatim in an error banner, so anything raised here IS what the
+    user sees. The real error is always logged server-side either way,
+    so nothing is lost for debugging - it just isn't shown raw in the UI.
+    """
+    if isinstance(e, APIError):
+        logger.error("Supabase error in certificates route: %s", e.json() if hasattr(e, "json") else e)
+        raise HTTPException(
+            status_code=500,
+            detail="Something went wrong saving that. Please try again in a moment.",
+        )
+    logger.exception("Unexpected error in certificates route")
+    raise HTTPException(status_code=500, detail="Something went wrong. Please try again.")
 
 
 @router.get("/")
@@ -39,7 +62,7 @@ def list_certificates(email: str):
         )
         return {"success": True, "data": response.data or []}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_clean_500(e)
 
 
 # =====================================================================
@@ -85,7 +108,7 @@ async def extract_certificate(file: UploadFile = File(...)):
         )
         return {"success": True, "data": extracted}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_clean_500(e)
 
 
 @router.get("/my")
@@ -101,7 +124,7 @@ def get_my_certificates(email: str):
         data = user_certificate_service.list_user_certificates(email)
         return {"success": True, "data": data}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_clean_500(e)
 
 
 @router.post("/my")
@@ -166,7 +189,7 @@ async def upload_my_certificate(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_clean_500(e)
 
 
 @router.delete("/my/{certificate_id}")
@@ -184,7 +207,7 @@ def delete_my_certificate(certificate_id: str, email: str):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_clean_500(e)
 
 
 # =====================================================================
@@ -205,12 +228,12 @@ def get_recommendations(email: str):
         result = certificate_recommendation_service.get_or_generate_recommendations(email)
         return {"success": True, **result}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_clean_500(e)
 
 
 @router.put("/recommendations/{recommendation_id}/progress")
 def update_recommendation_progress(recommendation_id: str, payload: UpdateProgressRequest):
-    """Manually updates progress (0/25/50/75/100) for one recommendation."""
+    """Manually updates progress (any whole value 0-100) for one recommendation."""
     try:
         row = user_certificate_service.update_progress(
             recommendation_id, payload.email, payload.progress_percent
@@ -219,7 +242,7 @@ def update_recommendation_progress(recommendation_id: str, payload: UpdateProgre
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_clean_500(e)
 
 
 @router.post("/recommendations/{recommendation_id}/complete")
@@ -270,4 +293,4 @@ async def complete_recommendation(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_clean_500(e)

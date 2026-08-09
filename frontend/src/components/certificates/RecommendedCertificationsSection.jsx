@@ -48,86 +48,101 @@ function RecommendationCard({
       className="rounded-2xl border border-white/10 bg-[#0B1120] p-5 flex flex-col flex-shrink-0"
       style={{ width: CARD_WIDTH }}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="text-white font-semibold leading-snug">
-            {certificate_name}
-          </h3>
-          <p className="text-gray-400 text-sm mt-1">{provider}</p>
+      {/* Everything that varies in length (name, description) lives in
+          this block, which just grows naturally. */}
+      <div>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-white font-semibold leading-snug">
+              {certificate_name}
+            </h3>
+            <p className="text-gray-400 text-sm mt-1">{provider}</p>
+          </div>
         </div>
-      </div>
 
-      <div className="flex flex-wrap gap-2 mt-3">
-        <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-500/15 border border-violet-500/30 text-violet-300">
-          {difficulty}
-        </span>
-        <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-cyan-500/15 border border-cyan-500/30 text-cyan-300">
-          {estimated_duration}
-        </span>
-      </div>
-
-      <p className="text-gray-400 text-sm mt-3 line-clamp-3">{description}</p>
-
-      <div className="mt-4">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-gray-400 text-xs">Progress</span>
-          <span className="text-white text-xs font-semibold">
-            {localProgress}%
+        <div className="flex flex-wrap gap-2 mt-3">
+          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-500/15 border border-violet-500/30 text-violet-300">
+            {difficulty}
+          </span>
+          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-cyan-500/15 border border-cyan-500/30 text-cyan-300">
+            {estimated_duration}
           </span>
         </div>
-        <div className="w-full h-2.5 rounded-full bg-gray-700 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 transition-all duration-150"
-            style={{ width: `${localProgress}%` }}
-          />
-        </div>
 
-        <div className="mt-3">
-          <label className="text-gray-500 text-xs">Update progress</label>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={localProgress}
-            disabled={updatingProgress}
-            onChange={(e) => setLocalProgress(Number(e.target.value))}
-            onMouseUp={commitProgress}
-            onTouchEnd={commitProgress}
-            onKeyUp={commitProgress}
-            className="w-full mt-1.5 accent-cyan-500 disabled:opacity-50"
-          />
+        <p className="text-gray-400 text-sm mt-3 line-clamp-3">{description}</p>
+
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-gray-400 text-xs">Progress</span>
+            <span className="text-white text-xs font-semibold">
+              {localProgress}%
+            </span>
+          </div>
+          <div className="w-full h-2.5 rounded-full bg-gray-700 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 transition-all duration-150"
+              style={{ width: `${localProgress}%` }}
+            />
+          </div>
+
+          <div className="mt-3">
+            <label className="text-gray-500 text-xs">Update progress</label>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={localProgress}
+              disabled={updatingProgress}
+              onChange={(e) => setLocalProgress(Number(e.target.value))}
+              onMouseUp={commitProgress}
+              onTouchEnd={commitProgress}
+              onKeyUp={commitProgress}
+              className="w-full mt-1.5 accent-cyan-500 disabled:opacity-50"
+            />
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mt-4">
-        <button
-          onClick={() => onViewDetails(recommendation)}
-          className="flex-1 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition text-white text-sm font-medium flex items-center justify-center gap-1.5"
-        >
-          <Eye size={14} />
-          View Details
-        </button>
-        <a
-          href={official_link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-1 py-2 rounded-lg bg-gradient-to-r from-violet-600 to-cyan-500 hover:opacity-90 transition text-white text-sm font-medium flex items-center justify-center gap-1.5"
-        >
-          <ExternalLink size={14} />
-          Start Course
-        </a>
-      </div>
+      {/* mt-auto pins this block to the bottom of the card regardless
+          of how short or long the description/content above is - so
+          when several cards with different-length descriptions sit
+          side by side, every "View Details / Start Course" row (and
+          the "Upload Certificate to Complete" button when it appears)
+          lines up at the same height instead of floating at different
+          points depending on content length. This relies on the outer
+          horizontal-scroll row stretching every card to equal height
+          by default (flexbox align-items: stretch). */}
+      <div className="mt-auto pt-4">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => onViewDetails(recommendation)}
+            className="flex-1 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition text-white text-sm font-medium flex items-center justify-center gap-1.5"
+          >
+            <Eye size={14} />
+            View Details
+          </button>
+          <a
+            href={official_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 py-2 rounded-lg bg-gradient-to-r from-violet-600 to-cyan-500 hover:opacity-90 transition text-white text-sm font-medium flex items-center justify-center gap-1.5"
+          >
+            <ExternalLink size={14} />
+            Start Course
+          </a>
+        </div>
 
-      {progress_percent === 100 && (
-        <button
-          onClick={() => onCompleteClick(recommendation)}
-          className="mt-2 w-full py-2 rounded-lg border border-green-500/40 bg-green-500/10 hover:bg-green-500/20 transition text-green-300 text-sm font-semibold flex items-center justify-center gap-1.5"
-        >
-          <UploadCloud size={14} />
-          Upload Certificate to Complete
-        </button>
-      )}
+        {progress_percent === 100 && (
+          <button
+            onClick={() => onCompleteClick(recommendation)}
+            className="mt-2 w-full py-2 rounded-lg border border-green-500/40 bg-green-500/10 hover:bg-green-500/20 transition text-green-300 text-sm font-semibold flex items-center justify-center gap-1.5"
+          >
+            <UploadCloud size={14} />
+            Upload Certificate to Complete
+          </button>
+        )}
+      </div>
     </div>
   );
 }
