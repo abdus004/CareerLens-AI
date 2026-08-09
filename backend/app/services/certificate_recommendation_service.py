@@ -154,6 +154,13 @@ def _gather_profile_context(email: str):
         "technical_skills": skill_payload.get("technical_skills", []),
         "career_goal": _load_json_field(profile_row.get("career_goal"), []),
         "recommended_role": career_row.get("recommended_role", ""),
+        # user_type/experience_years so Gemini can weigh recommendations
+        # appropriately - e.g. favoring foundational certificates for a
+        # Student vs. more advanced/specialization certificates for an
+        # experienced Job Seeker - without changing the once-per-email
+        # generation flow this service otherwise implements.
+        "user_type": profile_row.get("user_type", ""),
+        "experience_years": profile_row.get("experience_years"),
         "education": {
             "degree": profile_row.get("degree", ""),
             "department": profile_row.get("department", ""),

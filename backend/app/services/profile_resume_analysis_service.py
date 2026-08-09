@@ -1,4 +1,5 @@
 import hashlib
+import json
 
 from app.database.db import supabase
 from app.ai.gemini import generate_json
@@ -7,6 +8,42 @@ from app.ai.prompts import profile_resume_analysis_prompt
 
 def _hash_resume_text(resume_text: str) -> str:
     return hashlib.sha256(resume_text.encode("utf-8")).hexdigest()
+
+
+def _load_profile_context(email: str) -> dict | None:
+    """
+    Best-effort only: Resume Analysis can legitimately run before a
+    profile row fully exists (Profile Setup calls it mid-wizard), so a
+    missing/partial profile here must never block resume analysis
+    itself - it just means `suggestions` falls back to resume-text-only
+    personalization, exactly like before this existed.
+    """
+    try:
+        response = (
+            supabase
+            .table("profiles")
+            .select("career_goal, user_type, experience_years, year, cgpa, department, degree, skills")
+            .eq("email", email)
+            .maybe_single()
+            .execute()
+        )
+    except Exception:
+        return None
+
+    if not response or not response.data:
+        return None
+
+    row = dict(response.data)
+    for field in ("career_goal", "skills"):
+        if row.get(field):
+            try:
+                row[field] = json.loads(row[field])
+            except Exception:
+                pass
+
+    # Drop empty values instead of sending a wall of blank fields to
+    # Gemini for a profile that's only partially filled in.
+    return {k: v for k, v in row.items() if v not in (None, "", [], {})}
 
 
 def run_profile_resume_analysis(email: str, resume_text: str) -> dict:
@@ -42,7 +79,8 @@ def run_profile_resume_analysis(email: str, resume_text: str) -> dict:
         # the stored result instead of calling Gemini again.
         return existing.data
 
-    prompt = profile_resume_analysis_prompt(resume_text)
+    profile_context = _load_profile_context(email)
+    prompt = profile_resume_analysis_prompt(resume_text, profile_context)
     result = generate_json(prompt)
 
     resume_analysis_row = {

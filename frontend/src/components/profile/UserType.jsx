@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { GraduationCap, Briefcase } from "lucide-react";
 
-export default function UserType({ onNext }) {
-  const [selected, setSelected] = useState("");
+export default function UserType({ onNext, defaultValue = "" }) {
+  const [selected, setSelected] = useState(defaultValue);
 
   const cardStyle = (value) =>
     `

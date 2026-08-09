@@ -1,11 +1,56 @@
-from fastapi import APIRouter, HTTPException
+import os
+import uuid
+
+import requests
+from fastapi import APIRouter, BackgroundTasks, HTTPException
+
 from app.database.db import supabase
+from app.services.resume_parser import extract_text
+from app.services.profile_resume_analysis_service import run_profile_resume_analysis
 import json
 
 router = APIRouter(
     prefix="/dashboard",
     tags=["Dashboard"]
 )
+
+
+def _backfill_ai_suggestions(email: str, resume_url: str) -> None:
+    """
+    Self-heals the gap described in profile_resume_analysis_service.py:
+    resume_analysis, resume_data, and ai_suggestions are written as
+    three separate upserts, so a partial failure on an earlier run can
+    leave resume_analysis populated while ai_suggestions stays empty
+    forever (the hash-match check used to skip regeneration without
+    verifying ai_suggestions actually existed). That root cause is
+    fixed there; this is what makes it self-heal automatically for
+    anyone who already hit the gap, without asking them to manually
+    re-upload their resume in Settings.
+
+    Scheduled via BackgroundTasks below - runs AFTER the dashboard
+    response has already been sent, so it never adds latency to a
+    dashboard page load. Re-downloads the resume already on file,
+    re-extracts its text, and re-runs the exact same analysis
+    upload_resume() runs at upload time. Best-effort and silent on
+    failure, same as the original call site in routes/resume.py.
+    """
+    temp_path = None
+    try:
+        response = requests.get(resume_url, timeout=20)
+        response.raise_for_status()
+
+        temp_path = f"temp_dashboard_backfill_{uuid.uuid4()}.pdf"
+        with open(temp_path, "wb") as f:
+            f.write(response.content)
+
+        resume_text = extract_text(temp_path)
+        if resume_text.strip():
+            run_profile_resume_analysis(email, resume_text)
+    except Exception as e:
+        print(f"[dashboard] AI Suggestions backfill failed for {email}: {e}")
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
 
 
 def _dedup_count(portfolio_items, resume_items, key):
@@ -65,7 +110,7 @@ def _calculate_profile_strength(profile, resume_analysis_data):
 
 
 @router.get("/{email}")
-def get_dashboard(email: str):
+def get_dashboard(email: str, background_tasks: BackgroundTasks):
 
     try:
         response = (
@@ -143,6 +188,17 @@ def get_dashboard(email: str):
             if ai_suggestions_resp and ai_suggestions_resp.data
             else []
         )
+
+        # Self-heal: if there's genuinely nothing to show yet but a
+        # resume is already on file, schedule a background backfill
+        # (see _backfill_ai_suggestions above) rather than leaving the
+        # AI Suggestions card empty indefinitely. This response still
+        # returns immediately with whatever's currently stored - the
+        # backfill only affects the NEXT load, once it completes.
+        if not ai_suggestions and profile.get("resume_url"):
+            background_tasks.add_task(
+                _backfill_ai_suggestions, email, profile["resume_url"]
+            )
 
         # -----------------------------------------------------------
         # Stats: Projects / Internships merged across Portfolio +

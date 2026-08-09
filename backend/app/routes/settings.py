@@ -1,10 +1,11 @@
 import uuid
 import traceback
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Depends
 from pydantic import BaseModel
 
 from app.database.db import supabase
+from app.utils.security import get_authenticated_email, require_self
 
 # Reused, not duplicated - see the module docstrings on each of these
 # for why they're safe to call directly as plain Python functions
@@ -188,7 +189,9 @@ class DeleteAccountRequest(BaseModel):
 async def upload_avatar(
     email: str = Form(...),
     file: UploadFile = File(...),
+    auth_email: str = Depends(get_authenticated_email),
 ):
+    require_self(email, auth_email)
     try:
         if file.content_type and not file.content_type.startswith("image/"):
             raise HTTPException(
@@ -229,7 +232,11 @@ async def upload_avatar(
 
 
 @router.delete("/avatar")
-def remove_avatar(email: str = Query(...)):
+def remove_avatar(
+    email: str = Query(...),
+    auth_email: str = Depends(get_authenticated_email),
+):
+    require_self(email, auth_email)
     try:
         profile = _get_profile_or_404(email)
 
@@ -255,6 +262,7 @@ def remove_avatar(email: str = Query(...)):
 async def replace_resume(
     email: str = Form(...),
     file: UploadFile = File(...),
+    auth_email: str = Depends(get_authenticated_email),
 ):
     """
     Full "Replace Resume" workflow described in the Settings spec:
@@ -278,6 +286,7 @@ async def replace_resume(
     after it, or the resume upload itself, which is what the user is
     actually waiting on.
     """
+    require_self(email, auth_email)
     try:
         upload_result = await upload_resume(email=email, file=file)
     except HTTPException:
@@ -323,7 +332,12 @@ async def replace_resume(
 # ------------------------------------------------------------------
 
 @router.put("/theme")
-def update_theme(payload: ThemeUpdate):
+def update_theme(
+    payload: ThemeUpdate,
+    auth_email: str = Depends(get_authenticated_email),
+):
+    require_self(payload.email, auth_email)
+
     if payload.theme_preference not in ("dark", "light"):
         raise HTTPException(
             status_code=400,
@@ -350,7 +364,11 @@ def update_theme(payload: ThemeUpdate):
 # ------------------------------------------------------------------
 
 @router.put("/notifications")
-def update_notifications(payload: NotificationsUpdate):
+def update_notifications(
+    payload: NotificationsUpdate,
+    auth_email: str = Depends(get_authenticated_email),
+):
+    require_self(payload.email, auth_email)
     try:
         _get_profile_or_404(payload.email)
 
@@ -375,7 +393,12 @@ def update_notifications(payload: NotificationsUpdate):
 # ------------------------------------------------------------------
 
 @router.post("/change-password")
-def change_password(payload: ChangePasswordRequest):
+def change_password(
+    payload: ChangePasswordRequest,
+    auth_email: str = Depends(get_authenticated_email),
+):
+    require_self(payload.email, auth_email)
+
     if len(payload.new_password) < 8:
         raise HTTPException(
             status_code=400,
@@ -407,7 +430,10 @@ def change_password(payload: ChangePasswordRequest):
 
 
 @router.post("/account/delete")
-def delete_account(payload: DeleteAccountRequest):
+def delete_account(
+    payload: DeleteAccountRequest,
+    auth_email: str = Depends(get_authenticated_email),
+):
     """
     Requires the current password as confirmation (the same
     verification pattern as Change Password) before deleting anything.
@@ -415,6 +441,8 @@ def delete_account(payload: DeleteAccountRequest):
     identity itself last, so a failure partway through data cleanup
     never leaves the person locked out with their data still gone.
     """
+    require_self(payload.email, auth_email)
+
     try:
         verification = supabase.auth.sign_in_with_password({
             "email": payload.email,

@@ -87,6 +87,44 @@ def _score_relevance(drive: dict, signal_text: str):
     return _jaccard(drive_text, signal_text)
 
 
+def _score_employment_type_fit(drive: dict, user_type: str | None):
+    """
+    Returns None (not a neutral number) when user_type is unset - so
+    rank_recommended_drives can skip this factor entirely for legacy
+    profiles and reproduce the exact pre-existing ranking formula,
+    rather than blending in a constant that would still change nothing
+    numerically but would make the "unchanged for legacy users"
+    guarantee harder to reason about.
+
+    Internship/Graduate Program drives are prioritized for Students;
+    Full Time is prioritized for Job Seekers - "prioritize", not
+    filter: every employment_type still gets scored and returned, per
+    the spec's explicit instruction not to hide opportunities outright.
+    """
+    if not user_type:
+        return None
+
+    employment_type = (drive.get("employment_type") or "").strip()
+
+    if user_type == "Student":
+        if employment_type in ("Internship", "Graduate Program"):
+            return 1.0
+        if employment_type == "Full Time":
+            return 0.5
+        return 0.7
+
+    if user_type == "Job Seeker":
+        if employment_type == "Full Time":
+            return 1.0
+        if employment_type == "Graduate Program":
+            return 0.6
+        if employment_type == "Internship":
+            return 0.3
+        return 0.7
+
+    return None
+
+
 def _score_deadline_urgency(deadline_value):
     """
     Sooner deadlines rank higher. A drive with no deadline (rolling
@@ -132,18 +170,28 @@ def rank_recommended_drives(
     one closing in a month, per the product spec.
     """
     signal_text = _student_signal_text(profile or {}, career_analysis or {})
+    user_type = (profile or {}).get("user_type")
 
     scored = []
     for drive in drives:
         relevance = _score_relevance(drive, signal_text)
         urgency = _score_deadline_urgency(drive.get("deadline"))
+        employment_fit = _score_employment_type_fit(drive, user_type)
 
-        if relevance is None:
-            # No student signal yet (new/incomplete profile) - rank by
-            # deadline urgency alone instead of guessing relevance.
+        if relevance is None and employment_fit is None:
+            # No student signal yet AND no user_type - rank by deadline
+            # urgency alone, exactly as before this became user_type-
+            # aware. This is the only path a legacy profile can take.
             combined = urgency
-        else:
+        elif relevance is None:
+            combined = (0.6 * urgency) + (0.4 * employment_fit)
+        elif employment_fit is None:
+            # Original two-factor formula, unchanged - legacy profiles
+            # with signal but no user_type get identical results to
+            # before.
             combined = (0.65 * relevance) + (0.35 * urgency)
+        else:
+            combined = (0.5 * relevance) + (0.3 * urgency) + (0.2 * employment_fit)
 
         scored.append((combined, drive))
 

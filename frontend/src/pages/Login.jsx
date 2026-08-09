@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import InputField from "../components/InputField";
+import api from "../services/api";
 import { saveSession } from "../utils/session";
-
-const API_URL = "http://127.0.0.1:8000";
+import { validateEmail } from "../utils/validators";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -19,44 +19,44 @@ export default function Login() {
   const handleLogin = async () => {
     setError("");
 
-    if (!email.trim() || !password.trim()) {
-      setError("Please enter both email and password.");
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
+
+    if (!password.trim()) {
+      setError("Please enter your password.");
       return;
     }
 
     setLoading(true);
 
-try {
-  const response = await fetch(`${API_URL}/auth/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email: email.trim().toLowerCase(),
-      password: password,
-    }),
-  });
+    try {
+      // Routed through the shared api client (services/api.js) instead
+      // of a raw fetch() against a hardcoded http://127.0.0.1:8000 -
+      // that hardcoded value meant Login was the one page in the app
+      // that ignored VITE_API_URL entirely and would only ever work
+      // on localhost, breaking silently the moment this is deployed
+      // anywhere else. Every other page (Signup, and every
+      // authenticated request via the interceptor added for
+      // Profile/Settings auth) already goes through this client.
+      const response = await api.post("/auth/login", {
+        email: email.trim().toLowerCase(),
+        password: password,
+      });
 
-  const data = await response.json();
+      const data = response.data;
 
-  if (!response.ok) {
-    setLoading(false);
-    setError(data.detail || "Invalid email or password.");
-    return;
-  }
+      saveSession(data.user, data.session, rememberMe);
 
-  saveSession(data.user, data.session, rememberMe);
-
-  setLoading(false);
-  navigate("/dashboard");
-
-} catch (err) {
-  console.error(err);
-  setLoading(false);
-  setError("Unable to connect to backend.");
-}
-    
+      navigate("/dashboard");
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      setError(detail || "Invalid email or password.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

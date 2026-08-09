@@ -100,6 +100,44 @@
 }
 
 /* ===================================================================
+   DEFAULT PAGE BACKGROUND (fixes the white strip visible while
+   scrolling on Signup / Profile Setup / Profile Management)
+
+   Root cause: `html.light body` below sets a background for LIGHT
+   mode, but nothing was ever set for the DEFAULT (dark) mode at the
+   html/body level - every dark page relied entirely on its own
+   wrapper div's `bg-[#050816]` (or similar) to paint itself. Any area
+   outside that div's rendered box - iOS/Android overscroll rubber-
+   banding, a dynamic mobile browser toolbar changing the viewport
+   height after paint, or simply a wrapper whose min-h-screen box
+   comes up a fraction short of the full scrollable document height -
+   exposed the browser canvas underneath, which defaults to white.
+
+   Fixed at the actual source (html/body, matching the exact
+   #050816 already used as the canonical dark background across every
+   page wrapper) rather than papering over it with an extra
+   absolutely-positioned element on each affected page. `min-height:
+   100%` (not a fixed height, and no overflow changes) lets html/body
+   grow to fit content and keeps native page scrolling working exactly
+   as before - this only ever affects what color shows, never how
+   much the page can scroll.
+   =================================================================== */
+
+html {
+  min-height: 100%;
+  background-color: #050816;
+}
+
+body {
+  min-height: 100%;
+  background-color: #050816;
+}
+
+#root {
+  min-height: 100%;
+}
+
+/* ===================================================================
    CAREERLENS DESIGN TOKENS
 
    CSS custom properties that drive every NEW premium/shared surface
@@ -407,6 +445,10 @@ html.light .cl-input:focus {
   --clens-light-text-tertiary: #726b98;
   --clens-light-text-quaternary: #948dbd;
   --clens-light-shadow: 0 1px 2px rgba(24, 19, 48, 0.04), 0 8px 22px rgba(76, 29, 149, 0.065);
+}
+
+html.light {
+  background-color: var(--clens-light-bg);
 }
 
 html.light body {

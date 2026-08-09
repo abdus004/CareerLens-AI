@@ -15,7 +15,7 @@ export default function ProfileLayout({
     "Education",
     "Career Goals",
     "Skills",
-    "Portfolio",
+    "Resume",
   ];
 
   return (

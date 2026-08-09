@@ -1,10 +1,27 @@
 def career_recommendation_prompt(profile: dict) -> str:
+    user_type = (profile or {}).get("user_type") or ""
+    is_job_seeker = user_type == "Job Seeker"
+    subject = "job seeker" if is_job_seeker else "student"
+
+    experience_instruction = (
+        "- This person is a JOB SEEKER, not a student - `experience_years` in "
+        "the profile reflects real professional experience. Weigh recommended "
+        "roles and the reason text toward what fits someone at that experience "
+        "level (e.g. don't recommend purely entry-level framing for someone "
+        "with several years of experience), rather than defaulting to "
+        "fresh-graduate assumptions.\n"
+        if is_job_seeker
+        else "- This person is a STUDENT. CGPA, academic year and degree "
+        "progress are meaningful signals here - factor them in alongside "
+        "skills.\n"
+    )
+
     return f"""
 You are CareerLens AI, an expert AI Career Advisor.
 
-Analyze the student's complete profile and recommend the best IT career path.
+Analyze the {subject}'s complete profile and recommend the best IT career path.
 
-Student Profile:
+Profile:
 
 {profile}
 
@@ -15,6 +32,7 @@ IMPORTANT:
 - If the user has manually edited a skill level, always trust skill_levels.
 - Recommend only realistic IT careers.
 - Use realistic industry trends and current IT market demand.
+{experience_instruction}
 
 Return ONLY valid JSON.
 
@@ -164,12 +182,37 @@ Frontend Developer
 {{"year":"2028","demand":72}}
 ]
 
-- reason should be a concise paragraph (2–4 sentences) explaining why the recommended role best matches the student's skills, education, interests and current profile.
+- reason should be a concise paragraph (2–4 sentences) explaining why the recommended role best matches this {subject}'s skills, education/experience, interests and current profile.
 
 - Return ONLY valid JSON.
 """
 
-def profile_resume_analysis_prompt(resume_text: str) -> str:
+def profile_resume_analysis_prompt(resume_text: str, profile_context: dict | None = None) -> str:
+    """
+    profile_context (optional) carries whatever real, already-saved
+    profile data is available at analysis time - career_goal,
+    user_type, experience_years/academic year, department/degree, and
+    the skills the person selected in Profile Setup. When present it's
+    given to Gemini as read-only context so `suggestions` (the AI
+    Suggestions card on the Dashboard) can be genuinely personalized
+    instead of generic resume-writing advice - e.g. suggesting a
+    project or certificate that closes the gap toward THIS person's
+    stated career_goal, not a generic one. Every other field in the
+    response (scores, extracted skills/education/experience, etc.)
+    continues to come from the resume text alone, exactly as before -
+    context is only ever additional input to `suggestions`.
+    """
+    context_block = ""
+    if profile_context:
+        context_block = f"""
+Candidate Context (already saved on their CareerLens profile - use
+this ONLY to personalize the `suggestions` array, never to fabricate
+resume content; if it conflicts with the resume text, the resume text
+still wins for every field except suggestions):
+
+{profile_context}
+"""
+
     return f"""
 You are CareerLens AI, an expert resume reviewer and ATS (Applicant
 Tracking System) analyst.
@@ -180,6 +223,7 @@ analysis.
 Resume Text:
 
 {resume_text}
+{context_block}
 
 Return ONLY valid JSON in exactly this structure:
 
@@ -222,17 +266,19 @@ Rules:
 - projects: list of objects like {{"name": "", "description": ""}}.
 - certifications: list of objects like {{"name": "", "organization": "", "year": ""}}.
 - languages: spoken/written languages if explicitly mentioned, otherwise an empty list - never guess.
-- suggestions: 3-5 concrete, actionable improvements. priority must be "High", "Medium", or "Low".
+- suggestions: 3-5 concrete, actionable improvements. priority must be "High", "Medium", or "Low". If Candidate Context is given below, ground suggestions in it (their actual career_goal, user_type, and current skills/education/experience) instead of generic resume advice - e.g. a missing skill or certificate that specifically closes the gap toward their stated career_goal.
 - Never invent information that is not present in the resume text.
 - Return ONLY valid JSON, no markdown fences, no commentary.
 """
 
 def skill_analysis_prompt(profile):
+    user_type = (profile or {}).get("user_type") or ""
+    subject = "job seeker" if user_type == "Job Seeker" else "student"
 
     return f"""
 You are CareerLens AI, an expert technical interviewer and software engineering mentor.
 
-Analyze the student's complete profile.
+Analyze the {subject}'s complete profile.
 
 Profile:
 {profile}
@@ -278,10 +324,10 @@ Rules:
 - Analyze both the resume and profile.
 - Use the latest skill_levels as the primary source of truth.
 - technical_skills should contain all relevant technical skills.
-- important_skills must contain EXACTLY the 6 most important technical skills for the student's strongest/recommended career path.
+- important_skills must contain EXACTLY the 6 most important technical skills for this {subject}'s strongest/recommended career path.
 - The skills in important_skills MUST also exist inside technical_skills.
 - Order important_skills from most important to least important.
-- weak_skills should contain only the most important technologies the student should learn next (maximum 5).
+- weak_skills should contain only the most important technologies this {subject} should learn next (maximum 5).
 - recommended_courses should recommend practical online courses or certifications matching the weak skills (maximum 5).
 - estimated_learning_time should be realistic (example: "2–3 Months", "4–6 Months", "6–9 Months").
 - Return ONLY valid JSON.

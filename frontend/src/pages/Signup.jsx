@@ -5,17 +5,12 @@ import InputField from "../components/InputField";
 import api from "../services/api";
 import { saveSession } from "../utils/session";
 import { Check, X, Loader2 } from "lucide-react";
-
-const PASSWORD_REQUIREMENTS = [
-  { label: "At least 8 characters", test: (pw) => pw.length >= 8 },
-  { label: "One uppercase letter", test: (pw) => /[A-Z]/.test(pw) },
-  { label: "One lowercase letter", test: (pw) => /[a-z]/.test(pw) },
-  { label: "One number", test: (pw) => /[0-9]/.test(pw) },
-  { label: "One special character", test: (pw) => /[^A-Za-z0-9]/.test(pw) },
-];
-
-const isPasswordValid = (pw) =>
-  PASSWORD_REQUIREMENTS.every((requirement) => requirement.test(pw));
+import {
+  validateFullName,
+  validateEmail,
+  PASSWORD_REQUIREMENTS,
+  isPasswordValid,
+} from "../utils/validators";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -54,13 +49,15 @@ export default function Signup() {
 
     let valid = true;
 
-    if (!name.trim()) {
-      setNameError("Full name is required.");
+    const nameErr = validateFullName(name);
+    if (nameErr) {
+      setNameError(nameErr);
       valid = false;
     }
 
-    if (!email.trim()) {
-      setEmailError("Email is required.");
+    const emailErr = validateEmail(email);
+    if (emailErr) {
+      setEmailError(emailErr);
       valid = false;
     }
 

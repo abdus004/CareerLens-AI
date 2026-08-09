@@ -55,7 +55,7 @@ def get_recommended_drives(email: str, limit: int = Query(default=10, ge=1, le=1
         profile_res = (
             supabase
             .table("profiles")
-            .select("skills, skill_levels, career_goal, department, degree")
+            .select("skills, skill_levels, career_goal, department, degree, user_type")
             .eq("email", email)
             .maybe_single()
             .execute()

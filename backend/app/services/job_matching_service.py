@@ -176,12 +176,81 @@ def _score_career(job: dict, career_analysis: dict):
     return best
 
 
+def _score_cgpa_fit(job: dict, profile: dict) -> float:
+    min_cgpa = job.get("min_cgpa")
+    if min_cgpa is None:
+        return 1.0
+    try:
+        cgpa = float(profile.get("cgpa"))
+        min_cgpa_f = float(min_cgpa)
+        if cgpa >= min_cgpa_f:
+            return 1.0
+        elif min_cgpa_f > 0:
+            return max(0.0, min(1.0, cgpa / min_cgpa_f))
+        return 1.0
+    except (TypeError, ValueError):
+        # CGPA missing, blank, or not a plain number - can't verify
+        # against the requirement, so this neither helps nor hurts.
+        return 0.5
+
+
+def _score_experience_fit(job: dict, profile: dict) -> float:
+    """
+    Job Seeker analogue of _score_cgpa_fit: compares the candidate's
+    experience_years (profiles.experience_years, collected only for
+    user_type = Job Seeker) against the job's experience_min/max
+    range. Mirrors the same "missing data neither helps nor hurts"
+    convention as the CGPA path above.
+    """
+    exp_min = job.get("experience_min")
+    exp_max = job.get("experience_max")
+
+    try:
+        candidate_years = float(profile.get("experience_years"))
+    except (TypeError, ValueError):
+        return 0.5
+
+    try:
+        exp_min_f = float(exp_min) if exp_min is not None else 0.0
+    except (TypeError, ValueError):
+        exp_min_f = 0.0
+
+    if candidate_years >= exp_min_f:
+        if exp_max is None:
+            return 1.0
+        try:
+            exp_max_f = float(exp_max)
+        except (TypeError, ValueError):
+            return 1.0
+        # Comfortably inside the range is a full match; noticeably
+        # over-qualified tapers off slightly rather than dropping hard,
+        # since an over-qualified candidate is still usually viable.
+        if candidate_years <= exp_max_f:
+            return 1.0
+        overshoot = candidate_years - exp_max_f
+        return max(0.6, 1.0 - (overshoot / 10))
+
+    if exp_min_f <= 0:
+        return 1.0
+    return max(0.0, min(1.0, candidate_years / exp_min_f))
+
+
 def _score_education(job: dict, profile: dict):
     """
     Blends department fit (free-text, so matched via token overlap -
     profile.department is a free-text field the user typed, like
-    "AI & DS", not a fixed enum) with CGPA fit against the job's
-    minimum, if any.
+    "AI & DS", not a fixed enum) with a second, user_type-dependent
+    fit component:
+
+      - Student (or user_type unset/legacy - preserves the original
+        behavior exactly for accounts that predate the Student/Job
+        Seeker selection): CGPA fit against the job's minimum, if any.
+      - Job Seeker: experience fit against the job's experience_min/
+        max range instead - CGPA isn't a meaningful signal for an
+        experienced professional, per the personalization spec.
+
+    Weights (0.6 department / 0.4 second component) are unchanged from
+    before this became user_type-aware.
     """
     preferred_departments = job.get("preferred_departments") or []
     department = profile.get("department") or ""
@@ -196,25 +265,12 @@ def _score_education(job: dict, profile: dict):
                 break
             dept_component = max(dept_component, _jaccard(department, preferred))
 
-    min_cgpa = job.get("min_cgpa")
-    if min_cgpa is None:
-        cgpa_component = 1.0
+    if profile.get("user_type") == "Job Seeker":
+        second_component = _score_experience_fit(job, profile)
     else:
-        try:
-            cgpa = float(profile.get("cgpa"))
-            min_cgpa_f = float(min_cgpa)
-            if cgpa >= min_cgpa_f:
-                cgpa_component = 1.0
-            elif min_cgpa_f > 0:
-                cgpa_component = max(0.0, min(1.0, cgpa / min_cgpa_f))
-            else:
-                cgpa_component = 1.0
-        except (TypeError, ValueError):
-            # CGPA missing, blank, or not a plain number - can't verify
-            # against the requirement, so this neither helps nor hurts.
-            cgpa_component = 0.5
+        second_component = _score_cgpa_fit(job, profile)
 
-    return (0.6 * dept_component) + (0.4 * cgpa_component)
+    return (0.6 * dept_component) + (0.4 * second_component)
 
 
 def _score_projects(job: dict, resume_data: dict):
@@ -285,6 +341,8 @@ def compute_match_fingerprint(profile: dict, skill_analysis: dict, career_analys
         "department": profile.get("department"),
         "degree": profile.get("degree"),
         "cgpa": profile.get("cgpa"),
+        "user_type": profile.get("user_type"),
+        "experience_years": profile.get("experience_years"),
         "career_goal": profile.get("career_goal"),
         "skill_analysis": skill_analysis or {},
         "career_analysis": career_analysis or {},

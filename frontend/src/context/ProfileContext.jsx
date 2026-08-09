@@ -13,7 +13,12 @@ const ProfileContext = createContext();
 // instead of each page (or the Navbar) re-fetching it independently.
 
 const DEFAULT_PROFILE = {
-  userType: "",
+  // NOTE: matches the `profiles.user_type` column name exactly (not
+  // camelCase `userType`) - the two were previously spelled
+  // differently between this context and the API payload, which is
+  // why the Student/Job Seeker selection was silently dropped and
+  // never reached the backend. See components/profile/UserType.jsx.
+  user_type: "",
 
   full_name: "",
   email: "",
@@ -29,6 +34,7 @@ const DEFAULT_PROFILE = {
   degree: "",
   year: "",
   cgpa: "",
+  experience_years: "", // Job Seeker only
 
   career_goal: [],
   skills: [],

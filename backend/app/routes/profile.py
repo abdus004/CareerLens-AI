@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import List
+from fastapi import APIRouter, HTTPException, Depends
 from app.database.db import supabase
+from app.models.profile import ProfileCreate
+from app.utils.security import get_authenticated_email, require_self
 import json
 import logging
 
@@ -12,31 +12,16 @@ router = APIRouter(
 logger = logging.getLogger(__name__)
 
 
-class ProfileCreate(BaseModel):
-    full_name: str
-    email: str
-    phone: str
-    gender: str
-    age: int
-
-    linkedin: str
-    github: str
-
-    college: str
-    department: str
-    degree: str
-    year: str
-    cgpa: str
-
-    career_goal: List[str]
-    skills: List[str]
-    interests: List[str]
-
-    resume_url: str = ""
-
-
 @router.post("/")
-def create_profile(profile: ProfileCreate):
+def create_profile(
+    profile: ProfileCreate,
+    auth_email: str = Depends(get_authenticated_email),
+):
+    # The request body still carries `email` (unchanged API shape, so
+    # the frontend didn't need to stop sending it) but it is no longer
+    # trusted on its own - it must match whoever the session token
+    # actually belongs to. See app/utils/security.py.
+    require_self(profile.email, auth_email)
 
     try:
         logger.info(f"Saving profile: {profile.email}")
@@ -45,6 +30,7 @@ def create_profile(profile: ProfileCreate):
         # Convert lists to JSON strings
         data["career_goal"] = json.dumps(data["career_goal"])
         data["interests"] = json.dumps(data["interests"])
+        data["skills"] = json.dumps(data["skills"])
 
         # Check whether profile already exists
         existing = (
@@ -56,13 +42,6 @@ def create_profile(profile: ProfileCreate):
         )
 
         if existing.data:
-# Always save the latest profile skills entered by the user.
-# Resume skills should be stored separately (resume_skills column)
-# and merged later during Skill Analysis.
-            data["skills"] = json.dumps(data["skills"])
-
-           
-
             response = (
                 supabase
                 .table("profiles")
@@ -72,10 +51,7 @@ def create_profile(profile: ProfileCreate):
             )
 
         else:
-
             # First time profile creation
-            data["skills"] = json.dumps(data["skills"])
-
             response = (
                 supabase
                 .table("profiles")
@@ -89,9 +65,12 @@ def create_profile(profile: ProfileCreate):
             "data": response.data
         }
 
+    except HTTPException:
+        raise
+
     except Exception as e:
         logger.exception(f"Profile save failed: {profile.email}")
-        
+
         raise HTTPException(
             status_code=500,
             detail=str(e)
@@ -99,15 +78,20 @@ def create_profile(profile: ProfileCreate):
 
 
 @router.get("/{email}")
-def get_profile(email: str):
+def get_profile(
+    email: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
     """
-    Read counterpart to POST /profile/ - genuinely missing until now.
-    Used by Settings (Profile section) and by the global profile
-    context (frontend/src/context/ProfileContext.jsx) so the Navbar
+    Read counterpart to POST /profile/. Used by Settings (Profile
+    section) and by the global profile context
+    (frontend/src/context/ProfileContext.jsx) so the Navbar
     avatar/name can be populated without waiting on a full
     /dashboard/{email} call. Same JSON-string-to-list decoding already
     used by dashboard.py / skills.py / career.py / jobs.py.
     """
+    require_self(email, auth_email)
+
     try:
         response = (
             supabase

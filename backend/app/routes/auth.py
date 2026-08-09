@@ -8,10 +8,18 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 @router.post("/signup")
 def signup(user: UserSignup):
 
+    # Normalized the same way the frontend already does
+    # (email.trim().toLowerCase()) so a profile row created right
+    # after signup (POST /profile/) always matches this exact string -
+    # Postgres text equality is case-sensitive, and profiles.email has
+    # no citext/lower() index, so a mismatch here would silently break
+    # every later profile/dashboard lookup for that account.
+    normalized_email = str(user.email).strip().lower()
+
     try:
         response = supabase.auth.sign_up(
             {
-                "email": user.email,
+                "email": normalized_email,
                 "password": user.password,
                 "options": {
                     "data": {
@@ -78,7 +86,7 @@ def login(user: UserLogin):
 
         response = supabase.auth.sign_in_with_password(
             {
-                "email": user.email,
+                "email": str(user.email).strip().lower(),
                 "password": user.password
             }
         )
