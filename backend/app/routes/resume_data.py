@@ -1,5 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 from app.database.db import supabase
+from app.utils.security import get_authenticated_email, require_self
 
 router = APIRouter(
     prefix="/resume",
@@ -8,7 +9,10 @@ router = APIRouter(
 
 
 @router.get("/data/{email}")
-def get_resume_data(email: str):
+def get_resume_data(
+    email: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
     """
     Settings > Profile > Resume Management needs "Last Updated" for the
     current resume. profiles.resume_url has the file itself, but the
@@ -17,6 +21,8 @@ def get_resume_data(email: str):
     changes) - so this just reads it rather than adding a duplicate
     timestamp column to profiles.
     """
+    require_self(email, auth_email)
+
     response = (
         supabase.table("resume_data")
         .select("updated_at")
@@ -32,7 +38,14 @@ def get_resume_data(email: str):
 
 
 @router.post("/save")
-async def save_resume(data: dict):
+async def save_resume(
+    data: dict,
+    auth_email: str = Depends(get_authenticated_email),
+):
+    target_email = data.get("email")
+    if not target_email:
+        raise HTTPException(status_code=422, detail="email is required.")
+    require_self(target_email, auth_email)
 
     response = (
         supabase.table("resume_data")

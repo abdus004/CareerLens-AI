@@ -100,44 +100,6 @@
 }
 
 /* ===================================================================
-   DEFAULT PAGE BACKGROUND (fixes the white strip visible while
-   scrolling on Signup / Profile Setup / Profile Management)
-
-   Root cause: `html.light body` below sets a background for LIGHT
-   mode, but nothing was ever set for the DEFAULT (dark) mode at the
-   html/body level - every dark page relied entirely on its own
-   wrapper div's `bg-[#050816]` (or similar) to paint itself. Any area
-   outside that div's rendered box - iOS/Android overscroll rubber-
-   banding, a dynamic mobile browser toolbar changing the viewport
-   height after paint, or simply a wrapper whose min-h-screen box
-   comes up a fraction short of the full scrollable document height -
-   exposed the browser canvas underneath, which defaults to white.
-
-   Fixed at the actual source (html/body, matching the exact
-   #050816 already used as the canonical dark background across every
-   page wrapper) rather than papering over it with an extra
-   absolutely-positioned element on each affected page. `min-height:
-   100%` (not a fixed height, and no overflow changes) lets html/body
-   grow to fit content and keeps native page scrolling working exactly
-   as before - this only ever affects what color shows, never how
-   much the page can scroll.
-   =================================================================== */
-
-html {
-  min-height: 100%;
-  background-color: #050816;
-}
-
-body {
-  min-height: 100%;
-  background-color: #050816;
-}
-
-#root {
-  min-height: 100%;
-}
-
-/* ===================================================================
    CAREERLENS DESIGN TOKENS
 
    CSS custom properties that drive every NEW premium/shared surface
@@ -447,10 +409,6 @@ html.light .cl-input:focus {
   --clens-light-shadow: 0 1px 2px rgba(24, 19, 48, 0.04), 0 8px 22px rgba(76, 29, 149, 0.065);
 }
 
-html.light {
-  background-color: var(--clens-light-bg);
-}
-
 html.light body {
   background-color: var(--clens-light-bg);
   background-image:
@@ -553,4 +511,230 @@ html.light ::-webkit-scrollbar-thumb {
 ::selection {
   background: var(--cl-accent-glow-soft);
   color: inherit;
+}
+
+/* ===================================================================
+   LIGHT THEME - ACCENT "CHIP" SYSTEM
+   (buttons, badges, pills, icon tiles, progress-adjacent labels)
+
+   The override block above re-skins neutral surfaces (bg-white/5,
+   border-white/10, text-gray-400, ...) but never touched the OTHER
+   pattern used everywhere for secondary buttons, status badges, and
+   icon tiles: a translucent colour wash paired with light coloured
+   text, e.g. bg-purple-500/20 + text-purple-300, or
+   bg-violet-500/15 + border-violet-500/30 + text-violet-300. That
+   combination is genuinely well-tuned for a near-black background
+   (a soft glowing chip) but on a white one it does the opposite of
+   "premium": the wash nearly disappears and the light text becomes
+   low-contrast, which is exactly the "always looks disabled" effect
+   on things like Skill Analysis's Reanalyze/Edit buttons and every
+   badge/icon-tile built the same way (job match %, certificate
+   category pills, difficulty/duration badges, stat-card icon tiles,
+   etc).
+
+   Same technique as the block above: every opacity step of a given
+   hue actually used in the app is collapsed into ONE readable,
+   properly-contrasted light-mode chip treatment per hue - a light
+   tinted background with real definition (helped by a matching
+   shadow token, avoiding a double-border clash with the separate
+   border override below) plus a darkened, saturated text colour. No
+   component file changes needed; anything already using these
+   classes re-skins itself the instant html.light is toggled, same as
+   every other override in this file.
+   =================================================================== */
+
+:root {
+  --clens-chip-purple-bg: rgba(147, 51, 234, 0.12);
+  --clens-chip-purple-bg-hover: rgba(147, 51, 234, 0.2);
+  --clens-chip-purple-border: rgba(147, 51, 234, 0.4);
+  --clens-chip-purple-text: #7e22ce;
+
+  --clens-chip-violet-bg: rgba(124, 58, 237, 0.12);
+  --clens-chip-violet-bg-hover: rgba(124, 58, 237, 0.2);
+  --clens-chip-violet-border: rgba(124, 58, 237, 0.4);
+  --clens-chip-violet-text: #6d28d9;
+
+  --clens-chip-cyan-bg: rgba(8, 145, 178, 0.12);
+  --clens-chip-cyan-bg-hover: rgba(8, 145, 178, 0.2);
+  --clens-chip-cyan-border: rgba(8, 145, 178, 0.4);
+  --clens-chip-cyan-text: #0e7490;
+
+  --clens-chip-green-bg: rgba(22, 163, 74, 0.12);
+  --clens-chip-green-bg-hover: rgba(22, 163, 74, 0.2);
+  --clens-chip-green-border: rgba(22, 163, 74, 0.4);
+  --clens-chip-green-text: #15803d;
+
+  --clens-chip-emerald-bg: rgba(5, 150, 105, 0.12);
+  --clens-chip-emerald-border: rgba(5, 150, 105, 0.4);
+  --clens-chip-emerald-text: #047857;
+
+  --clens-chip-red-bg: rgba(220, 38, 38, 0.1);
+  --clens-chip-red-bg-hover: rgba(220, 38, 38, 0.18);
+  --clens-chip-red-border: rgba(220, 38, 38, 0.38);
+  --clens-chip-red-text: #b91c1c;
+
+  --clens-chip-yellow-bg: rgba(202, 138, 4, 0.12);
+  --clens-chip-yellow-border: rgba(202, 138, 4, 0.4);
+  --clens-chip-yellow-text: #a16207;
+
+  --clens-chip-orange-bg: rgba(234, 88, 12, 0.12);
+  --clens-chip-orange-bg-hover: rgba(234, 88, 12, 0.2);
+  --clens-chip-orange-border: rgba(234, 88, 12, 0.4);
+  --clens-chip-orange-text: #c2410c;
+}
+
+/* Backgrounds - every opacity step of each hue collapses to one
+   readable light-mode chip fill, with a card-consistent shadow for
+   definition instead of a border (avoids clashing with the separate
+   border override below when both classes are present on one chip). */
+html.light .bg-purple-500\/10,
+html.light .bg-purple-500\/15,
+html.light .bg-purple-500\/20,
+html.light .bg-purple-500\/30 {
+  background-color: var(--clens-chip-purple-bg) !important;
+  box-shadow: var(--clens-light-shadow);
+}
+html.light .hover\:bg-purple-500\/30:hover {
+  background-color: var(--clens-chip-purple-bg-hover) !important;
+}
+
+html.light .bg-violet-500\/5,
+html.light .bg-violet-500\/10,
+html.light .bg-violet-500\/15,
+html.light .bg-violet-500\/20,
+html.light .bg-violet-500\/30 {
+  background-color: var(--clens-chip-violet-bg) !important;
+  box-shadow: var(--clens-light-shadow);
+}
+html.light .hover\:bg-violet-500\/20:hover {
+  background-color: var(--clens-chip-violet-bg-hover) !important;
+}
+
+html.light .bg-cyan-500\/5,
+html.light .bg-cyan-500\/10,
+html.light .bg-cyan-500\/15,
+html.light .bg-cyan-500\/20,
+html.light .bg-cyan-500\/30 {
+  background-color: var(--clens-chip-cyan-bg) !important;
+  box-shadow: var(--clens-light-shadow);
+}
+html.light .hover\:bg-cyan-500\/10:hover,
+html.light .hover\:bg-cyan-500\/30:hover {
+  background-color: var(--clens-chip-cyan-bg-hover) !important;
+}
+
+html.light .bg-green-500\/5,
+html.light .bg-green-500\/10,
+html.light .bg-green-500\/15,
+html.light .bg-green-500\/20,
+html.light .bg-green-500\/40 {
+  background-color: var(--clens-chip-green-bg) !important;
+  box-shadow: var(--clens-light-shadow);
+}
+html.light .hover\:bg-green-500\/20:hover {
+  background-color: var(--clens-chip-green-bg-hover) !important;
+}
+
+html.light .bg-red-500\/5,
+html.light .bg-red-500\/10,
+html.light .bg-red-500\/15,
+html.light .bg-red-500\/20 {
+  background-color: var(--clens-chip-red-bg) !important;
+  box-shadow: var(--clens-light-shadow);
+}
+html.light .hover\:bg-red-500\/10:hover,
+html.light .hover\:bg-red-500\/20:hover {
+  background-color: var(--clens-chip-red-bg-hover) !important;
+}
+
+html.light .bg-yellow-500\/15,
+html.light .bg-yellow-500\/20 {
+  background-color: var(--clens-chip-yellow-bg) !important;
+  box-shadow: var(--clens-light-shadow);
+}
+
+html.light .bg-orange-500\/5,
+html.light .bg-orange-500\/10,
+html.light .bg-orange-500\/15,
+html.light .bg-orange-500\/20,
+html.light .bg-orange-500\/40 {
+  background-color: var(--clens-chip-orange-bg) !important;
+  box-shadow: var(--clens-light-shadow);
+}
+
+/* Borders - a visibly saturated version of the same hue, so a badge
+   like a job-match percentage or a category pill still reads as
+   clearly outlined on a white card, not just a flat tint. */
+html.light .border-purple-500\/20,
+html.light .border-purple-500\/30,
+html.light .border-purple-500\/40 {
+  border-color: var(--clens-chip-purple-border) !important;
+}
+html.light .border-violet-500\/20,
+html.light .border-violet-500\/30,
+html.light .border-violet-500\/40,
+html.light .border-violet-500\/45,
+html.light .border-violet-500\/50 {
+  border-color: var(--clens-chip-violet-border) !important;
+}
+html.light .border-cyan-500\/20,
+html.light .border-cyan-500\/30,
+html.light .border-cyan-500\/40,
+html.light .border-cyan-500\/50,
+html.light .border-cyan-500\/60 {
+  border-color: var(--clens-chip-cyan-border) !important;
+}
+html.light .border-green-500\/20,
+html.light .border-green-500\/30,
+html.light .border-green-500\/40,
+html.light .border-green-500\/60 {
+  border-color: var(--clens-chip-green-border) !important;
+}
+html.light .border-red-500\/20,
+html.light .border-red-500\/30,
+html.light .border-red-500\/40 {
+  border-color: var(--clens-chip-red-border) !important;
+}
+html.light .border-orange-500\/20,
+html.light .border-orange-500\/30,
+html.light .border-orange-500\/40,
+html.light .border-orange-500\/60 {
+  border-color: var(--clens-chip-orange-border) !important;
+}
+
+/* Text - the actual readability fix. text-*-300/400 were tuned to
+   pop against near-black; in light mode they're replaced with a
+   darker, still-saturated version of the exact same hue rather than
+   a generic dark grey, so every chip/badge/icon keeps its colour
+   identity (still "the purple one", "the green one", ...) while
+   becoming properly legible on white. */
+html.light .text-purple-300,
+html.light .text-purple-400 {
+  color: var(--clens-chip-purple-text) !important;
+}
+html.light .text-violet-300,
+html.light .text-violet-400 {
+  color: var(--clens-chip-violet-text) !important;
+}
+html.light .text-cyan-300,
+html.light .text-cyan-400 {
+  color: var(--clens-chip-cyan-text) !important;
+}
+html.light .text-green-300,
+html.light .text-green-400 {
+  color: var(--clens-chip-green-text) !important;
+}
+html.light .text-emerald-400 {
+  color: var(--clens-chip-emerald-text) !important;
+}
+html.light .text-red-300,
+html.light .text-red-400 {
+  color: var(--clens-chip-red-text) !important;
+}
+html.light .text-yellow-400 {
+  color: var(--clens-chip-yellow-text) !important;
+}
+html.light .text-orange-300,
+html.light .text-orange-400 {
+  color: var(--clens-chip-orange-text) !important;
 }

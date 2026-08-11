@@ -3,12 +3,13 @@ import traceback
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 
 from app.database.db import supabase
 from app.ai.gemini import generate_json
 from app.ai.prompts import support_assistant_prompt
+from app.utils.security import get_authenticated_email, require_self
 
 router = APIRouter(
     prefix="/support",
@@ -76,7 +77,12 @@ class FeedbackRequest(BaseModel):
 
 
 @router.post("/feedback")
-def submit_feedback(payload: FeedbackRequest):
+def submit_feedback(
+    payload: FeedbackRequest,
+    auth_email: str = Depends(get_authenticated_email),
+):
+    require_self(payload.email, auth_email)
+
     if payload.rating < 1 or payload.rating > 5:
         raise HTTPException(status_code=400, detail="Rating must be between 1 and 5.")
 
@@ -130,7 +136,10 @@ async def submit_ticket(
     priority: str = Form("Medium"),
     message: str = Form(...),
     attachment: Optional[UploadFile] = File(None),
+    auth_email: str = Depends(get_authenticated_email),
 ):
+    require_self(email, auth_email)
+
     if priority not in VALID_PRIORITIES:
         raise HTTPException(status_code=400, detail="priority must be Low, Medium or High.")
 

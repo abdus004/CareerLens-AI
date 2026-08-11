@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 import json
 import traceback
@@ -12,6 +12,7 @@ from app.services.job_matching_service import (
     compute_match,
     compute_match_fingerprint,
 )
+from app.utils.security import get_authenticated_email, require_self
 
 router = APIRouter(
     prefix="/jobs",
@@ -225,13 +226,18 @@ def _generate_and_save_recommendations(email: str):
 # ------------------------------------------------------------------
 
 @router.get("/{email}")
-def get_job_recommendations(email: str):
+def get_job_recommendations(
+    email: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
     """
     Loads the user's saved Top 3 job recommendations. Returns 404 if
     none have been generated yet - the frontend auto-generates one the
     first time, the same pattern already used by
     GET /career/{email} and GET /skills/{email}.
     """
+    require_self(email, auth_email)
+
     try:
         response = (
             supabase
@@ -262,12 +268,17 @@ def get_job_recommendations(email: str):
 
 
 @router.post("/analyze/{email}")
-def analyze_jobs(email: str):
+def analyze_jobs(
+    email: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
     """
     "Reanalyze". Explicit, user-requested recomputation of AI Match
     scores and rankings against the Job Master database. Does not call
     Gemini for ranking/matching/filtering - see job_matching_service.py.
     """
+    require_self(email, auth_email)
+
     try:
         recommendations, total_matching = _generate_and_save_recommendations(email)
         return {"recommendations": recommendations, "total_matching": total_matching}
@@ -287,6 +298,7 @@ def search_jobs(
     location: Optional[str] = Query(None),
     min_salary: Optional[float] = Query(None),
     max_experience: Optional[float] = Query(None),
+    auth_email: str = Depends(get_authenticated_email),
 ):
     """
     Filters run entirely against the Job Master database - no Gemini
@@ -294,6 +306,8 @@ def search_jobs(
     with the same deterministic AI Match % used for the Top 3, so
     filtered results stay visually consistent with the rest of the page.
     """
+    require_self(email, auth_email)
+
     try:
         profile, skill_analysis, career_analysis, resume_data = _load_user_context(email)
 
@@ -332,7 +346,11 @@ def search_jobs(
 
 
 @router.get("/{email}/{job_id}")
-def get_job_details(email: str, job_id: str):
+def get_job_details(
+    email: str,
+    job_id: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
     """
     "View Details". Deterministic fields (required/matched/missing
     skills, match %) are always computed fresh. The Gemini-written
@@ -343,6 +361,8 @@ def get_job_details(email: str, job_id: str):
     generated - tracked via input_fingerprint, independent of whether
     the user has clicked "Reanalyze" on the Top 3 list.
     """
+    require_self(email, auth_email)
+
     try:
         job_res = (
             supabase

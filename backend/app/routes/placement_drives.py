@@ -1,11 +1,12 @@
 from typing import Optional
 from datetime import date
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.database.db import supabase
 from app.services.placement_drive_service import sync_all_sources
 from app.services.drive_matching_service import rank_recommended_drives
+from app.utils.security import get_authenticated_email, require_self
 
 router = APIRouter(
     prefix="/placement-drives",
@@ -36,7 +37,11 @@ def _fetch_active_non_expired_drives():
 
 
 @router.get("/recommended/{email}")
-def get_recommended_drives(email: str, limit: int = Query(default=10, ge=1, le=10)):
+def get_recommended_drives(
+    email: str,
+    limit: int = Query(default=10, ge=1, le=10),
+    auth_email: str = Depends(get_authenticated_email),
+):
     """
     "Top 10 Recommended Placement Drives" - ranks active, non-expired
     drives by a blend of student-fit (skills/career goal/department,
@@ -49,6 +54,8 @@ def get_recommended_drives(email: str, limit: int = Query(default=10, ge=1, le=1
     No match percentage is computed or returned here - the ranking
     score is used purely server-side to order the list.
     """
+    require_self(email, auth_email)
+
     try:
         drives = _fetch_active_non_expired_drives()
 
@@ -153,12 +160,20 @@ def get_placement_drive(drive_id: str):
 
 
 @router.post("/refresh")
-def refresh_placement_drives():
+def refresh_placement_drives(auth_email: str = Depends(get_authenticated_email)):
     """
     Manually triggers the same sync the 24-hour scheduler runs
     (job_sources -> upsert -> expire). Useful for testing, and for
     forcing an update without waiting for the next scheduled run.
+
+    This app has no admin/role concept anywhere else, so the bar here
+    is simply "must be a logged-in user" (auth_email is required but
+    intentionally unused beyond that) rather than a full admin check -
+    that at least closes the fully-anonymous abuse path against the
+    real Greenhouse/Lever calls this triggers. If you add real admin
+    roles later, tighten this to check for one.
     """
+    _ = auth_email
     try:
         summary = sync_all_sources()
         return {"success": True, "summary": summary}

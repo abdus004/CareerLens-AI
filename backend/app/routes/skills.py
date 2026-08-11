@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Dict
 import json
@@ -8,6 +8,7 @@ from app.database.db import supabase
 from app.ai.gemini import generate_json
 from app.ai.prompts import skill_analysis_prompt
 from app.services.certificate_bonus_service import get_certificate_bonus, apply_bonus
+from app.utils.security import get_authenticated_email, require_self
 
 router = APIRouter(
     prefix="/skills",
@@ -20,7 +21,11 @@ class SkillLevelsUpdate(BaseModel):
 
 
 @router.put("/{email}")
-def update_skill_levels(email: str, request: SkillLevelsUpdate):
+def update_skill_levels(
+    email: str,
+    request: SkillLevelsUpdate,
+    auth_email: str = Depends(get_authenticated_email),
+):
     """
     Saves manually edited skill levels ONLY.
 
@@ -36,6 +41,8 @@ def update_skill_levels(email: str, request: SkillLevelsUpdate):
     POST /skills/analyze/{email} (Reanalyze), which is where the user
     is actually asking for it to happen.
     """
+    require_self(email, auth_email)
+
     try:
 
         # Check if profile exists
@@ -76,8 +83,14 @@ def update_skill_levels(email: str, request: SkillLevelsUpdate):
         )
 
 
-@router.post("/analyze/{email}")
-def analyze_skills(email: str):
+def run_skill_analysis(email: str):
+    """
+    The actual Reanalyze logic. Split out from the route below so it
+    can still be called directly as a plain Python function from
+    routes/settings.py's Replace Resume cascade (which is already
+    protected by its own session auth check before it ever reaches
+    this point) without needing a request-scoped auth dependency.
+    """
 
     try:
 
@@ -195,8 +208,21 @@ def analyze_skills(email: str):
         )
 
 
+@router.post("/analyze/{email}")
+def analyze_skills(
+    email: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
+    require_self(email, auth_email)
+    return run_skill_analysis(email)
+
+
 @router.get("/{email}")
-def get_skill_analysis(email: str):
+def get_skill_analysis(
+    email: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
+    require_self(email, auth_email)
 
     try:
 

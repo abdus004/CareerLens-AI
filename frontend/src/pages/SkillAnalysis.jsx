@@ -6,7 +6,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../services/api";
 import RadarSkillChart from "../components/dashboard/RadarSkillChart";
 import WeakSkillsCard from "../components/dashboard/WeakSkillsCard";
 import RecommendedCoursesCard from "../components/dashboard/RecommendedCoursesCard";
@@ -42,9 +42,18 @@ export default function SkillAnalysis() {
     }
 
     try {
-      const dashboardResponse = await axios.get(
-        `http://127.0.0.1:8000/dashboard/${user.email}`
-      );
+      // Routed through the shared api client (services/api.js) instead
+      // of a raw `axios` import hitting a hardcoded
+      // http://127.0.0.1:8000 directly - that bypassed the
+      // Authorization-header interceptor entirely (no interceptor
+      // exists on the raw axios import, only on the shared client),
+      // which is exactly why these requests showed up with no
+      // `authorization` header at all and 401'd once any backend route
+      // in the request chain started requiring one. It also meant this
+      // page would only ever work on localhost, same as the Login.jsx
+      // bug fixed earlier. `api` already knows the right base URL
+      // (VITE_API_URL), so these are relative paths now, not full URLs.
+      const dashboardResponse = await api.get(`/dashboard/${user.email}`);
 
       const profile = dashboardResponse.data.data;
       const detectedSkills = profile.skills || [];
@@ -53,9 +62,7 @@ export default function SkillAnalysis() {
       let analysisData = null;
 
       try {
-        const analysisResponse = await axios.get(
-          `http://127.0.0.1:8000/skills/${user.email}`
-        );
+        const analysisResponse = await api.get(`/skills/${user.email}`);
         analysisData = analysisResponse.data;
       } catch (err) {
         if (err?.response?.status === 404 && !attemptedAutoGenerate) {
@@ -64,9 +71,7 @@ export default function SkillAnalysis() {
           // from the database afterward so what's shown always matches
           // what's actually persisted (rather than trusting the POST
           // response shape to exactly match the GET response shape).
-          await axios.post(
-            `http://127.0.0.1:8000/skills/analyze/${user.email}`
-          );
+          await api.post(`/skills/analyze/${user.email}`);
           return loadSkillData(true);
         }
         throw err;
@@ -103,9 +108,7 @@ export default function SkillAnalysis() {
       setReanalyzing(true);
       setReanalyzeText("⏳ Reanalyzing...");
 
-      await axios.post(
-        `http://127.0.0.1:8000/skills/analyze/${user.email}`
-      );
+      await api.post(`/skills/analyze/${user.email}`);
 
       // We already know an analysis exists now (we just created/updated
       // it) - skip the auto-generate-if-missing branch and just reload.
@@ -150,12 +153,9 @@ export default function SkillAnalysis() {
         skillLevels[skill.name] = skill.level;
       });
 
-      await axios.put(
-        `http://127.0.0.1:8000/skills/${user.email}`,
-        {
-          skill_levels: skillLevels,
-        }
-      );
+      await api.put(`/skills/${user.email}`, {
+        skill_levels: skillLevels,
+      });
 
       setHasChanges(false);
       setButtonText("✓ Saved");

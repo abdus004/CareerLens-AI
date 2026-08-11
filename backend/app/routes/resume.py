@@ -1,7 +1,8 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
 from app.database.db import supabase
 from app.services.resume_parser import extract_text, extract_skills
 from app.services.profile_resume_analysis_service import run_profile_resume_analysis
+from app.utils.security import get_authenticated_email, require_self
 
 import uuid
 import os
@@ -16,8 +17,10 @@ router = APIRouter(
 @router.post("/upload")
 async def upload_resume(
     email: str = Form(...),
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    auth_email: str = Depends(get_authenticated_email),
 ):
+    require_self(email, auth_email)
 
     temp_path = None
 

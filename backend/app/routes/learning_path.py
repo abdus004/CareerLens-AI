@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from app.database.db import supabase
 from app.services.learning_path_service import (
     generate_learning_path,
     get_or_generate_topic_details,
 )
+from app.utils.security import get_authenticated_email, require_self
 import json
 
 router = APIRouter(
@@ -13,7 +14,11 @@ router = APIRouter(
 
 
 @router.get("/{email}")
-def get_learning_path(email: str):
+def get_learning_path(
+    email: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
+    require_self(email, auth_email)
 
     try:
 
@@ -105,7 +110,11 @@ def get_learning_path(email: str):
 
 
 @router.get("/{email}/topic-details")
-def get_topic_details(email: str, skill: str = Query(...)):
+def get_topic_details(
+    email: str,
+    skill: str = Query(...),
+    auth_email: str = Depends(get_authenticated_email),
+):
     """
     Powers "Start Learning". Looks the requested skill up inside THIS
     student's own saved learning path (never trusts a client-supplied
@@ -115,6 +124,8 @@ def get_topic_details(email: str, skill: str = Query(...)):
     ever if it doesn't already exist yet, see
     learning_path_service.get_or_generate_topic_details.
     """
+    require_self(email, auth_email)
+
     try:
         saved_path = (
             supabase

@@ -2,11 +2,12 @@ import os
 import uuid
 
 import requests
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
 from app.database.db import supabase
 from app.services.resume_parser import extract_text
 from app.services.profile_resume_analysis_service import run_profile_resume_analysis
+from app.utils.security import get_authenticated_email, require_self
 import json
 
 router = APIRouter(
@@ -110,7 +111,12 @@ def _calculate_profile_strength(profile, resume_analysis_data):
 
 
 @router.get("/{email}")
-def get_dashboard(email: str, background_tasks: BackgroundTasks):
+def get_dashboard(
+    email: str,
+    background_tasks: BackgroundTasks,
+    auth_email: str = Depends(get_authenticated_email),
+):
+    require_self(email, auth_email)
 
     try:
         response = (

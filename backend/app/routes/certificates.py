@@ -1,7 +1,7 @@
 from typing import Optional
 import logging
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from postgrest.exceptions import APIError
 
 from app.database.db import supabase
@@ -11,6 +11,7 @@ from app.services import (
     certificate_recommendation_service,
     user_certificate_service,
 )
+from app.utils.security import get_authenticated_email, require_self
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ def _raise_clean_500(e: Exception):
 
 
 @router.get("/")
-def list_certificates(email: str):
+def list_certificates(email: str, auth_email: str = Depends(get_authenticated_email)):
     """
     Powers the CareerLens Certificates section of the Certification
     Dashboard. Only ever reads already-issued certificates rows -
@@ -52,6 +53,8 @@ def list_certificates(email: str):
     Recommended Certifications sections are powered entirely by the new
     endpoints below.
     """
+    require_self(email, auth_email)
+
     try:
         response = (
             supabase.table("certificates")
@@ -112,7 +115,7 @@ async def extract_certificate(file: UploadFile = File(...)):
 
 
 @router.get("/my")
-def get_my_certificates(email: str):
+def get_my_certificates(email: str, auth_email: str = Depends(get_authenticated_email)):
     """
     Lists ONLY the externally uploaded certificates for this email
     (Google, AWS, Coursera, etc. - plus any completed AI-recommended
@@ -120,6 +123,8 @@ def get_my_certificates(email: str):
     includes CareerLens Skill Assessment certificates - those stay
     exclusively in GET /certificates/ above.
     """
+    require_self(email, auth_email)
+
     try:
         data = user_certificate_service.list_user_certificates(email)
         return {"success": True, "data": data}
@@ -135,6 +140,7 @@ async def upload_my_certificate(
     issue_date: Optional[str] = Form(None),
     category: Optional[str] = Form(None),
     file: UploadFile = File(...),
+    auth_email: str = Depends(get_authenticated_email),
 ):
     """
     Uploads an external certificate (PDF or image) and adds it to My
@@ -148,6 +154,8 @@ async def upload_my_certificate(
     provider, NULL issue date, "Other" category) so an empty value here
     never causes a 422 or a Supabase constraint error.
     """
+    require_self(email, auth_email)
+
     if category is not None and category not in CERTIFICATE_CATEGORIES:
         category = "Other"
 
@@ -193,7 +201,11 @@ async def upload_my_certificate(
 
 
 @router.delete("/my/{certificate_id}")
-def delete_my_certificate(certificate_id: str, email: str):
+def delete_my_certificate(
+    certificate_id: str,
+    email: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
     """
     Deletes one externally uploaded certificate from My Certificates.
     Ownership is verified server-side in user_certificate_service - a
@@ -201,6 +213,8 @@ def delete_my_certificate(certificate_id: str, email: str):
     its id. There is no equivalent endpoint for CareerLens certificates;
     they are never deletable.
     """
+    require_self(email, auth_email)
+
     try:
         user_certificate_service.delete_user_certificate(certificate_id, email)
         return {"success": True}
@@ -216,7 +230,7 @@ def delete_my_certificate(certificate_id: str, email: str):
 
 
 @router.get("/recommendations")
-def get_recommendations(email: str):
+def get_recommendations(email: str, auth_email: str = Depends(get_authenticated_email)):
     """
     Reads the persisted Top-5 AI recommendations for this email,
     generating them with a single Gemini call the first time this is
@@ -224,6 +238,8 @@ def get_recommendations(email: str):
     have both completed) - see certificate_recommendation_service for
     the full one-time-generation guarantee.
     """
+    require_self(email, auth_email)
+
     try:
         result = certificate_recommendation_service.get_or_generate_recommendations(email)
         return {"success": True, **result}
@@ -232,8 +248,14 @@ def get_recommendations(email: str):
 
 
 @router.put("/recommendations/{recommendation_id}/progress")
-def update_recommendation_progress(recommendation_id: str, payload: UpdateProgressRequest):
+def update_recommendation_progress(
+    recommendation_id: str,
+    payload: UpdateProgressRequest,
+    auth_email: str = Depends(get_authenticated_email),
+):
     """Manually updates progress (any whole value 0-100) for one recommendation."""
+    require_self(payload.email, auth_email)
+
     try:
         row = user_certificate_service.update_progress(
             recommendation_id, payload.email, payload.progress_percent
@@ -253,6 +275,7 @@ async def complete_recommendation(
     provider: str = Form(...),
     issue_date: str = Form(...),
     file: UploadFile = File(...),
+    auth_email: str = Depends(get_authenticated_email),
 ):
     """
     Only reachable once progress has reached 100% (enforced server-side
@@ -260,6 +283,8 @@ async def complete_recommendation(
     certificate, moves it into My Certificates, and removes the
     recommendation from Recommended Certifications.
     """
+    require_self(email, auth_email)
+
     if file.content_type not in ALLOWED_UPLOAD_CONTENT_TYPES:
         raise HTTPException(
             status_code=400,

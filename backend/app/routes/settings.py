@@ -12,7 +12,7 @@ from app.utils.security import get_authenticated_email, require_self
 # outside of an HTTP request (FastAPI's @router decorators return the
 # original function unchanged).
 from app.routes.resume import upload_resume
-from app.routes.skills import analyze_skills
+from app.routes.skills import run_skill_analysis as analyze_skills
 from app.routes.jobs import _generate_and_save_recommendations
 from app.services.certificate_recommendation_service import reset_for_new_resume
 

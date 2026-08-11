@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.database.db import supabase
 from app.models.skill_assessment import (
@@ -16,6 +16,7 @@ from app.services.assessment_question_bank_service import (
 )
 from app.services.assessment_scoring_service import score_assessment
 from app.services.certificate_service import generate_certificate
+from app.utils.security import get_authenticated_email, require_self
 
 router = APIRouter(
     prefix="/skill-assessment",
@@ -31,6 +32,28 @@ VALID_OPTIONS = {"A", "B", "C", "D"}
 # truth for the duration calculation, used identically whether the
 # student is starting a fresh attempt or retaking one.
 SECONDS_PER_QUESTION = {"Easy": 60, "Medium": 75, "Hard": 90}
+
+
+def _require_owns_assessment(assessment_id: str, auth_email: str) -> dict:
+    """
+    Same ownership-lookup pattern as mock_interview.py's
+    _require_owns_interview - endpoints keyed only by assessment_id
+    (no email in the path/body) still need to verify the logged-in
+    user actually owns that assessment before reading or acting on it.
+    """
+    response = (
+        supabase.table("assessments")
+        .select("*")
+        .eq("id", assessment_id)
+        .maybe_single()
+        .execute()
+    )
+
+    if not response or not response.data:
+        raise HTTPException(status_code=404, detail="Assessment not found.")
+
+    require_self(response.data["email"], auth_email)
+    return response.data
 
 
 def _validate_settings(category: str, difficulty: str, num_questions: int):
@@ -93,7 +116,11 @@ def _create_assessment(email: str, category: str, difficulty: str, num_questions
 
 
 @router.post("/start")
-def start_assessment(payload: StartAssessmentRequest):
+def start_assessment(
+    payload: StartAssessmentRequest,
+    auth_email: str = Depends(get_authenticated_email),
+):
+    require_self(payload.email, auth_email)
     _validate_settings(payload.category, payload.difficulty, payload.num_questions)
 
     try:
@@ -108,8 +135,10 @@ def start_assessment(payload: StartAssessmentRequest):
 
 
 @router.get("/history")
-def get_history(email: str):
+def get_history(email: str, auth_email: str = Depends(get_authenticated_email)):
     """Completed attempts for the Skill Assessment main page's 'Previous Assessments' list."""
+    require_self(email, auth_email)
+
     try:
         assessments_response = (
             supabase.table("assessments")
@@ -166,7 +195,10 @@ def get_history(email: str):
 
 
 @router.get("/{assessment_id}")
-def get_assessment(assessment_id: str):
+def get_assessment(
+    assessment_id: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
     """
     Assessment metadata + its full ordered, answer-safe question list -
     lets the Assessment Test page recover on a page refresh, and lets
@@ -174,18 +206,7 @@ def get_assessment(assessment_id: str):
     seeded from the backend's clock rather than its own.
     """
     try:
-        assessment_response = (
-            supabase.table("assessments")
-            .select("*")
-            .eq("id", assessment_id)
-            .maybe_single()
-            .execute()
-        )
-
-        if not assessment_response or not assessment_response.data:
-            raise HTTPException(status_code=404, detail="Assessment not found.")
-
-        assessment = assessment_response.data
+        assessment = _require_owns_assessment(assessment_id, auth_email)
         question_ids = assessment.get("question_ids") or []
 
         bank_by_id = fetch_bank_rows_by_ids(question_ids)
@@ -240,18 +261,14 @@ def get_assessment(assessment_id: str):
 
 
 @router.post("/{assessment_id}/answer")
-def save_answer(assessment_id: str, payload: SaveAssessmentAnswerRequest):
+def save_answer(
+    assessment_id: str,
+    payload: SaveAssessmentAnswerRequest,
+    auth_email: str = Depends(get_authenticated_email),
+):
     try:
-        assessment_response = (
-            supabase.table("assessments")
-            .select("status")
-            .eq("id", assessment_id)
-            .maybe_single()
-            .execute()
-        )
-        if not assessment_response or not assessment_response.data:
-            raise HTTPException(status_code=404, detail="Assessment not found.")
-        if assessment_response.data["status"] == "completed":
+        assessment = _require_owns_assessment(assessment_id, auth_email)
+        if assessment["status"] == "completed":
             raise HTTPException(status_code=400, detail="This assessment has already been submitted.")
 
         selected_option = payload.selected_option.upper() if payload.selected_option else None
@@ -281,19 +298,12 @@ def save_answer(assessment_id: str, payload: SaveAssessmentAnswerRequest):
 
 
 @router.post("/{assessment_id}/finish")
-def finish_assessment(assessment_id: str):
+def finish_assessment(
+    assessment_id: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
     try:
-        assessment_response = (
-            supabase.table("assessments")
-            .select("*")
-            .eq("id", assessment_id)
-            .maybe_single()
-            .execute()
-        )
-        if not assessment_response or not assessment_response.data:
-            raise HTTPException(status_code=404, detail="Assessment not found.")
-
-        assessment = assessment_response.data
+        assessment = _require_owns_assessment(assessment_id, auth_email)
 
         # Idempotent: re-clicking Finish (or a slow network retry)
         # returns the already-computed result instead of re-scoring or
@@ -389,8 +399,13 @@ def finish_assessment(assessment_id: str):
 
 
 @router.get("/{assessment_id}/result")
-def get_result(assessment_id: str):
+def get_result(
+    assessment_id: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
     try:
+        _require_owns_assessment(assessment_id, auth_email)
+
         response = (
             supabase.table("assessment_results")
             .select("*")
@@ -431,7 +446,10 @@ def get_result(assessment_id: str):
 
 
 @router.get("/{assessment_id}/review")
-def get_review(assessment_id: str):
+def get_review(
+    assessment_id: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
     """
     Only ever returns correct answers/explanations for a COMPLETED
     assessment - never while status is still 'in_progress'. This is
@@ -441,7 +459,7 @@ def get_review(assessment_id: str):
     try:
         assessment_response = (
             supabase.table("assessments")
-            .select("id, status, question_ids")
+            .select("id, email, status, question_ids")
             .eq("id", assessment_id)
             .maybe_single()
             .execute()
@@ -450,6 +468,7 @@ def get_review(assessment_id: str):
             raise HTTPException(status_code=404, detail="Assessment not found.")
 
         assessment = assessment_response.data
+        require_self(assessment["email"], auth_email)
         if assessment["status"] != "completed":
             raise HTTPException(status_code=403, detail="Answers can only be reviewed after the assessment is submitted.")
 
@@ -505,7 +524,12 @@ def get_review(assessment_id: str):
 
 
 @router.post("/{assessment_id}/certificate")
-def issue_certificate(assessment_id: str, payload: GenerateCertificateRequest):
+def issue_certificate(
+    assessment_id: str,
+    payload: GenerateCertificateRequest,
+    auth_email: str = Depends(get_authenticated_email),
+):
+    require_self(payload.email, auth_email)
     try:
         certificate = generate_certificate(assessment_id, payload.email)
         return {"success": True, "data": certificate}
@@ -516,7 +540,11 @@ def issue_certificate(assessment_id: str, payload: GenerateCertificateRequest):
 
 
 @router.post("/{assessment_id}/retake")
-def retake_assessment(assessment_id: str, payload: RetakeAssessmentRequest):
+def retake_assessment(
+    assessment_id: str,
+    payload: RetakeAssessmentRequest,
+    auth_email: str = Depends(get_authenticated_email),
+):
     """
     Generates a fresh attempt with the same settings (category,
     difficulty, num_questions), with a newly and independently
@@ -524,18 +552,10 @@ def retake_assessment(assessment_id: str, payload: RetakeAssessmentRequest):
     the old one, so the original attempt's answers/result/certificate
     stay intact.
     """
-    try:
-        original_response = (
-            supabase.table("assessments")
-            .select("*")
-            .eq("id", assessment_id)
-            .maybe_single()
-            .execute()
-        )
-        if not original_response or not original_response.data:
-            raise HTTPException(status_code=404, detail="Original assessment not found.")
+    require_self(payload.email, auth_email)
 
-        original = original_response.data
+    try:
+        original = _require_owns_assessment(assessment_id, auth_email)
 
         return {
             "success": True,

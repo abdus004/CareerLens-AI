@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from app.database.db import supabase
 from app.ai.gemini import generate_json
 from app.ai.prompts import career_recommendation_prompt
 from app.services.learning_path_service import generate_learning_path
 from app.services.certificate_bonus_service import get_certificate_bonus, apply_bonus
+from app.utils.security import get_authenticated_email, require_self
 import json
 
 router = APIRouter(
@@ -115,7 +116,11 @@ def generate_career_analysis(email: str):
 
 
 @router.post("/analyze/{email}")
-def analyze_career(email: str):
+def analyze_career(
+    email: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
+    require_self(email, auth_email)
 
     try:
         return generate_career_analysis(email)
@@ -131,7 +136,11 @@ def analyze_career(email: str):
 
 
 @router.get("/{email}")
-def get_career_analysis(email: str):
+def get_career_analysis(
+    email: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
+    require_self(email, auth_email)
 
     try:
 

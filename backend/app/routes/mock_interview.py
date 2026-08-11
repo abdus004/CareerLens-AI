@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.database.db import supabase
 from app.models.mock_interview import (
@@ -10,6 +10,7 @@ from app.models.mock_interview import (
 )
 from app.services.interview_evaluation_service import evaluate_interview
 from app.services.question_bank_service import select_interview_questions
+from app.utils.security import get_authenticated_email, require_self
 
 router = APIRouter(
     prefix="/mock-interview",
@@ -19,6 +20,29 @@ router = APIRouter(
 VALID_INTERVIEW_TYPES = {"Technical", "HR", "Behavioral", "Mixed"}
 VALID_DIFFICULTIES = {"Easy", "Medium", "Hard"}
 VALID_NUM_QUESTIONS = {5, 10, 15, 20}
+
+
+def _require_owns_interview(interview_id: str, auth_email: str) -> dict:
+    """
+    Endpoints keyed only by interview_id (no email in the path/body)
+    still need an ownership check - otherwise anyone who guesses/finds
+    an interview_id could read or act on someone else's interview.
+    Fetches just enough to verify ownership and returns the row so
+    callers that need the full interview don't have to fetch it twice.
+    """
+    response = (
+        supabase.table("interviews")
+        .select("*")
+        .eq("id", interview_id)
+        .maybe_single()
+        .execute()
+    )
+
+    if not response or not response.data:
+        raise HTTPException(status_code=404, detail="Interview not found.")
+
+    require_self(response.data["email"], auth_email)
+    return response.data
 
 
 def _validate_settings(interview_type: str, difficulty: str, num_questions: int):
@@ -65,7 +89,11 @@ def _create_interview(email: str, interview_type: str, target_role: str, difficu
 
 
 @router.post("/start")
-def start_interview(payload: StartInterviewRequest):
+def start_interview(
+    payload: StartInterviewRequest,
+    auth_email: str = Depends(get_authenticated_email),
+):
+    require_self(payload.email, auth_email)
     _validate_settings(payload.interview_type, payload.difficulty, payload.num_questions)
 
     try:
@@ -86,7 +114,10 @@ def start_interview(payload: StartInterviewRequest):
 
 
 @router.get("/{interview_id}")
-def get_interview(interview_id: str):
+def get_interview(
+    interview_id: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
     """
     Returns interview metadata plus its full ordered question list.
     Exists so the Mode Select, Chat Interview, and Voice Interview
@@ -94,18 +125,7 @@ def get_interview(interview_id: str):
     on React Router navigation state, which is lost on reload.
     """
     try:
-        interview_response = (
-            supabase.table("interviews")
-            .select("*")
-            .eq("id", interview_id)
-            .maybe_single()
-            .execute()
-        )
-
-        if not interview_response or not interview_response.data:
-            raise HTTPException(status_code=404, detail="Interview not found.")
-
-        interview = interview_response.data
+        interview = _require_owns_interview(interview_id, auth_email)
         question_ids = interview.get("question_ids") or []
 
         questions_response = (
@@ -162,8 +182,14 @@ def get_interview(interview_id: str):
 
 
 @router.post("/{interview_id}/answer")
-def save_answer(interview_id: str, payload: SaveAnswerRequest):
+def save_answer(
+    interview_id: str,
+    payload: SaveAnswerRequest,
+    auth_email: str = Depends(get_authenticated_email),
+):
     try:
+        _require_owns_interview(interview_id, auth_email)
+
         row = {
             "interview_id": interview_id,
             "question_number": payload.question_number,
@@ -187,20 +213,12 @@ def save_answer(interview_id: str, payload: SaveAnswerRequest):
 
 
 @router.post("/{interview_id}/finish")
-def finish_interview(interview_id: str):
+def finish_interview(
+    interview_id: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
     try:
-        interview_response = (
-            supabase.table("interviews")
-            .select("*")
-            .eq("id", interview_id)
-            .maybe_single()
-            .execute()
-        )
-
-        if not interview_response or not interview_response.data:
-            raise HTTPException(status_code=404, detail="Interview not found.")
-
-        interview = interview_response.data
+        interview = _require_owns_interview(interview_id, auth_email)
 
         answers_response = (
             supabase.table("interview_answers")
@@ -253,8 +271,13 @@ def finish_interview(interview_id: str):
 
 
 @router.get("/{interview_id}/result")
-def get_result(interview_id: str):
+def get_result(
+    interview_id: str,
+    auth_email: str = Depends(get_authenticated_email),
+):
     try:
+        _require_owns_interview(interview_id, auth_email)
+
         response = (
             supabase.table("interview_results")
             .select("*")
@@ -275,7 +298,11 @@ def get_result(interview_id: str):
 
 
 @router.post("/{interview_id}/retake")
-def retake_interview(interview_id: str, payload: RetakeInterviewRequest):
+def retake_interview(
+    interview_id: str,
+    payload: RetakeInterviewRequest,
+    auth_email: str = Depends(get_authenticated_email),
+):
     """
     Generates a fresh interview with the same settings (interview_type,
     target_role, difficulty, num_questions) as an existing one, with a
@@ -283,19 +310,10 @@ def retake_interview(interview_id: str, payload: RetakeInterviewRequest):
     interviews row, not a reset of the old one, so the original
     attempt's answers and result stay intact.
     """
+    require_self(payload.email, auth_email)
+
     try:
-        original_response = (
-            supabase.table("interviews")
-            .select("*")
-            .eq("id", interview_id)
-            .maybe_single()
-            .execute()
-        )
-
-        if not original_response or not original_response.data:
-            raise HTTPException(status_code=404, detail="Original interview not found.")
-
-        original = original_response.data
+        original = _require_owns_interview(interview_id, auth_email)
 
         return {
             "success": True,
