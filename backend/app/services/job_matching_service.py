@@ -416,16 +416,53 @@ def get_top_matches(
     career_analysis: dict,
     resume_data: dict,
     limit: int = 3,
+    max_per_role: int = 2,
 ) -> list:
     """
     Scores every active job and returns the top N as lightweight match
     records (job_id + score only). Full job details are joined back in
     by the route at read time, so an edit to a live Job Master listing
     is reflected immediately without needing to rerun matching.
+
+    Diversified by role_title (max_per_role), not just a flat top-N by
+    score. The Job Master seed data has ~5 near-identical postings
+    (same required_skills, different company) per role template, so a
+    user who scores well on one role - e.g. Full Stack Developer -
+    used to see that single role fill every single recommendation
+    slot, crowding out every other role they'd also be a good fit for.
+    Selection now walks the score-sorted list and skips a job once
+    `max_per_role` postings of that same role_title have already been
+    picked, so the Top N spans multiple distinct roles that genuinely
+    match the user's skills instead of duplicating one. If there
+    aren't enough distinct roles to fill every slot this way (e.g. the
+    user only qualifies for one role type), the remaining slots are
+    backfilled from the highest-scoring leftovers so the list is never
+    shorter than before.
     """
     scored = [
         compute_match(job, profile, skill_analysis, career_analysis, resume_data)
         for job in jobs
     ]
     scored.sort(key=lambda m: m["match_percentage"], reverse=True)
-    return scored[:limit]
+
+    jobs_by_id = {job["id"]: job for job in jobs}
+
+    selected = []
+    leftover = []
+    role_counts = {}
+
+    for match in scored:
+        role_title = (jobs_by_id.get(match["job_id"]) or {}).get("role_title") or ""
+        if role_counts.get(role_title, 0) < max_per_role:
+            selected.append(match)
+            role_counts[role_title] = role_counts.get(role_title, 0) + 1
+        else:
+            leftover.append(match)
+
+        if len(selected) >= limit:
+            break
+
+    if len(selected) < limit:
+        selected.extend(leftover[: limit - len(selected)])
+
+    return selected[:limit]

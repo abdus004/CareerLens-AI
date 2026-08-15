@@ -14,6 +14,28 @@ import LearningTimeCard from "../components/dashboard/LearningTimeCard";
 import { getCurrentUser } from "../utils/session";
 import { getErrorMessage } from "../utils/apiError";
 
+// A skill the user has (whether picked in Profile Setup or detected on
+// the resume) that Skill Analysis / Gemini hasn't AI-scored yet used to
+// be shown flat at 0%, which read as "you have zero ability in this" -
+// misleading, since the skill is genuinely on their profile, it just
+// hasn't been rated. Instead it gets a small, non-zero starting value
+// in the 1-30% range so the bar/card never looks empty or broken.
+//
+// The value is derived deterministically from the skill's own name
+// (not Math.random()) so it stays stable across re-renders and page
+// reloads instead of jumping around every time the component mounts -
+// the same unscored skill always starts at the same baseline value
+// until a real Reanalyze gives it an actual AI-scored level.
+function fallbackSkillLevel(skillName) {
+  let hash = 0;
+  const name = String(skillName || "");
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash << 5) - hash + name.charCodeAt(i);
+    hash |= 0; // keep it a 32-bit int
+  }
+  return 1 + (Math.abs(hash) % 30); // 1-30 inclusive
+}
+
 export default function SkillAnalysis() {
   const [skills, setSkills] = useState([]);
   const [analysis, setAnalysis] = useState(null);
@@ -78,13 +100,15 @@ export default function SkillAnalysis() {
         throw err;
       }
 
-      // Real skill levels only - no fake/placeholder default. A skill
-      // detected on the resume that the AI analysis didn't score is
-      // shown as 0 (clearly "not yet rated") rather than a fabricated
-      // 50%, which would look like a real, meaningful score.
+      // Every skill on the profile - whether hand-picked in Profile
+      // Setup or detected on the resume - gets an initial level here.
+      // A skill Gemini has actually AI-scored uses that real score;
+      // one that hasn't been scored yet gets a small deterministic
+      // 1-30% starting value (see fallbackSkillLevel above) instead of
+      // a flat, misleading 0%.
       const formattedSkills = detectedSkills.map((skill) => ({
         name: skill,
-        level: skillLevels[skill] ?? 0,
+        level: skillLevels[skill] ?? fallbackSkillLevel(skill),
       }));
 
       setSkills(formattedSkills);

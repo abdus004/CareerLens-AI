@@ -288,7 +288,18 @@ async def replace_resume(
     """
     require_self(email, auth_email)
     try:
-        upload_result = await upload_resume(email=email, file=file)
+        # upload_resume is a FastAPI route function whose `auth_email`
+        # parameter defaults to `Depends(get_authenticated_email)` -
+        # that default is only ever resolved by FastAPI's own request
+        # handling. Called directly like this as a plain function (no
+        # HTTP request involved), that default is never resolved, so
+        # `auth_email` inside upload_resume was literally the raw
+        # `Depends(...)` object instead of a string - and the first
+        # thing it does with it (require_self -> .strip()) crashed with
+        # "'Depends' object has no attribute 'strip'". This request has
+        # already authenticated as `auth_email` above via require_self,
+        # so that same verified value is passed straight through.
+        upload_result = await upload_resume(email=email, file=file, auth_email=auth_email)
     except HTTPException:
         raise
     except Exception as e:

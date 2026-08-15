@@ -54,9 +54,18 @@ export default function IndustryDemandChart({
           <LabelList
             dataKey="demand"
             position="top"
-            fill="#E5E7EB"
-            fontSize={12}
-            fontWeight={600}
+            content={({ x, y, width, value }) => (
+              <text
+                x={x + width / 2}
+                y={y - 10}
+                textAnchor="middle"
+                fill="#4ADE80"
+                fontSize={13}
+                fontWeight={700}
+              >
+                {`+${value}`}
+              </text>
+            )}
           />
         </Bar>
       </BarChart>
