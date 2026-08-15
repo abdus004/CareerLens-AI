@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import api from "../services/api";
 import { getCurrentUser } from "../utils/session";
+import { getErrorMessage } from "../utils/apiError";
 import {
   Code2,
   Calculator,
@@ -167,8 +168,7 @@ export default function Assessments() {
     } catch (err) {
       console.error("Error starting assessment:", err);
       setFormError(
-        err?.response?.data?.detail ||
-          "We couldn't start this assessment. Please try again."
+        getErrorMessage(err, "We couldn't start this assessment. Please try again.")
       );
       setStarting(false);
     }

@@ -10,6 +10,7 @@ import {
   X,
   AlertTriangle,
 } from "lucide-react";
+import { getErrorMessage } from "../../utils/apiError";
 
 function formatDate(dateString) {
   if (!dateString) return "Issue date not specified";
@@ -56,8 +57,7 @@ export default function MyCertificatesSection({
       setConfirmDeleteId(null);
     } catch (err) {
       setConfirmError(
-        err?.response?.data?.detail ||
-          "We couldn't delete this certificate. Please try again."
+        getErrorMessage(err, "We couldn't delete this certificate. Please try again.")
       );
     } finally {
       setDeletingId(null);

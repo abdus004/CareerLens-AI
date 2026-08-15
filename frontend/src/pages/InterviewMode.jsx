@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import api from "../services/api";
+import { getErrorMessage } from "../utils/apiError";
 import { MessageSquare, Mic, RefreshCw } from "lucide-react";
 
 export default function InterviewMode() {
@@ -38,8 +39,7 @@ export default function InterviewMode() {
     } catch (err) {
       console.error("Error starting interview:", err);
       setError(
-        err?.response?.data?.detail ||
-          "We couldn't start the interview. Please try again."
+        getErrorMessage(err, "We couldn't start the interview. Please try again.")
       );
       setStartingMode(null);
     }

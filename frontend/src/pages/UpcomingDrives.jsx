@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import api from "../services/api";
 import { getCurrentUser } from "../utils/session";
+import { getErrorMessage } from "../utils/apiError";
 import {
   Building2,
   MapPin,
@@ -203,8 +204,7 @@ export default function UpcomingDrives() {
     } catch (err) {
       console.error("Error fetching placement drives:", err);
       setError(
-        err?.response?.data?.detail ||
-          "We couldn't load Upcoming Drives. Please try again."
+        getErrorMessage(err, "We couldn't load Upcoming Drives. Please try again.")
       );
     } finally {
       setLoading(false);

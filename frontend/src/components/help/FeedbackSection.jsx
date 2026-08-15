@@ -2,6 +2,7 @@ import { useState } from "react";
 import { MessageSquareHeart, Star, Loader2, CheckCircle2 } from "lucide-react";
 import api from "../../services/api";
 import { getCurrentUser } from "../../utils/session";
+import { getErrorMessage } from "../../utils/apiError";
 
 export default function FeedbackSection() {
   const [rating, setRating] = useState(0);
@@ -37,7 +38,7 @@ export default function FeedbackSection() {
 
       setSubmitted(true);
     } catch (err) {
-      setError(err?.response?.data?.detail || "Could not submit your feedback. Please try again.");
+      setError(getErrorMessage(err, "Could not submit your feedback. Please try again."));
     } finally {
       setSubmitting(false);
     }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, UploadCloud, RefreshCw, Sparkles, AlertTriangle } from "lucide-react";
 import api from "../../services/api";
+import { getErrorMessage } from "../../utils/apiError";
 
 const INPUT_CLASS =
   "mt-2 w-full rounded-xl bg-[#0B1120] border border-white/10 p-3 text-white outline-none focus:border-cyan-500 transition";
@@ -143,8 +144,7 @@ export default function UploadCertificateModal({
       });
     } catch (err) {
       setError(
-        err?.response?.data?.detail ||
-          "We couldn't save this certificate. Please try again."
+        getErrorMessage(err, "We couldn't save this certificate. Please try again.")
       );
     } finally {
       setSubmitting(false);

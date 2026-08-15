@@ -3,6 +3,7 @@ import { User, Loader2, CheckCircle2, GraduationCap, Briefcase } from "lucide-re
 import api from "../../services/api";
 import { useProfile } from "../../context/ProfileContext";
 import { getCurrentUser } from "../../utils/session";
+import { getErrorMessage } from "../../utils/apiError";
 import InputField from "../InputField";
 import AvatarUploader from "./AvatarUploader";
 import ResumeManagementCard from "./ResumeManagementCard";
@@ -153,7 +154,20 @@ export default function ProfileSection() {
       cgpa: isJobSeeker ? "" : form.cgpa.toString(),
       experience_years: isJobSeeker && form.experience_years !== "" ? Number(form.experience_years) : null,
       career_goal: profileData.career_goal || [],
-      skills: profileData.skills || [],
+      // Prefer the true profile-selected-only list (profile_skills, or
+      // the raw profile_selected_skills) when it's already known, so
+      // this general Settings save can't re-submit the CURRENT merged
+      // profile+resume skill list as if it had all been freshly
+      // hand-picked here - that would permanently absorb resume-only
+      // skills into "profile selected", so they'd wrongly survive a
+      // later resume replacement instead of being dropped with the old
+      // resume. Falls back to profileData.skills for a profile that
+      // predates this column (still null there) or was saved before
+      // this distinction existed - self-heals the next time Profile
+      // Setup or a resume upload runs either way.
+      skills: Array.isArray(profileData.profile_selected_skills)
+        ? profileData.profile_selected_skills
+        : profileData.skills || [],
       interests: profileData.interests || [],
       resume_url: profileData.resume_url || "",
     };
@@ -178,7 +192,7 @@ export default function ProfileSection() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      setSaveError(err?.response?.data?.detail || "Could not save your changes. Please try again.");
+      setSaveError(getErrorMessage(err, "Could not save your changes. Please try again."));
     } finally {
       setSaving(false);
     }

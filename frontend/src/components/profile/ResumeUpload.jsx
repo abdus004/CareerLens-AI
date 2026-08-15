@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useProfile } from "../../context/ProfileContext";
 import api from "../../services/api";
+import { getErrorMessage } from "../../utils/apiError";
 
 // Final step of Profile Setup. Previously named "Portfolio" and also
 // collected Project / Internship / Certification details - none of
@@ -31,6 +32,11 @@ export default function ResumeUpload({ onNext, onBack }) {
       const finalProfile = {
         ...profileData,
         resume_url: profileData.resume_url || "",
+        // What Step 1 actually submits as profile-selected skills -
+        // recorded here too so the context matches what the backend
+        // just stored in profile_selected_skills (see routes/profile.py),
+        // independent of whatever gets merged in from the resume next.
+        profile_selected_skills: profileData.skills || [],
       };
 
       await api.post("/profile/", finalProfile);
@@ -49,6 +55,16 @@ export default function ResumeUpload({ onNext, onBack }) {
 
         finalProfile.resume_url =
           uploadResponse.data.resume_url || uploadResponse.data.file_url || "";
+
+        // The backend just merged this resume's skills with whatever
+        // was profile-selected in Step 1 (see
+        // services/skill_unification_service.build_unified_skills) -
+        // reflect that unified result immediately, rather than leaving
+        // the context holding only the pre-upload, profile-selected-
+        // only skills until the next full profile reload.
+        if (Array.isArray(uploadResponse.data.skills)) {
+          finalProfile.skills = uploadResponse.data.skills;
+        }
       }
 
       // -------------------------------
@@ -62,10 +78,12 @@ export default function ResumeUpload({ onNext, onBack }) {
       onNext();
     } catch (err) {
       console.error("Profile Setup - Finish Error:", err);
-      setError(
-        err.response?.data?.detail ||
-          "Something went wrong saving your profile. Please try again."
-      );
+      // getErrorMessage safely handles FastAPI's 422 validation error
+      // shape (an array of {type, loc, msg, input} objects) instead of
+      // rendering it directly, which previously crashed this whole
+      // page ("Objects are not valid as a React child") the moment any
+      // single field failed backend validation.
+      setError(getErrorMessage(err, "Something went wrong saving your profile. Please try again."));
     } finally {
       setSubmitting(false);
     }

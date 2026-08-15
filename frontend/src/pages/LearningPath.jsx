@@ -2,6 +2,7 @@ import DashboardLayout from "../components/dashboard/DashboardLayout";
 import { Route, PlayCircle, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getCurrentUser } from "../utils/session";
+import { getErrorMessage } from "../utils/apiError";
 import api from "../services/api";
 import LearningDetailsModal from "../components/learning-path/LearningDetailsModal";
 
@@ -29,8 +30,7 @@ export default function LearningPath() {
         setRoadmap(Array.isArray(response.data.learning_path) ? response.data.learning_path : []);
       } catch (err) {
         setError(
-          err?.response?.data?.detail ||
-            "We couldn't load your Learning Path. Please try again."
+          getErrorMessage(err, "We couldn't load your Learning Path. Please try again.")
         );
       } finally {
         setLoading(false);

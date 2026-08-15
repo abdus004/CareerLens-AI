@@ -3,6 +3,7 @@ import { FileText, Download, RefreshCcw, CheckCircle2 } from "lucide-react";
 import api from "../../services/api";
 import { useProfile } from "../../context/ProfileContext";
 import { getCurrentUser } from "../../utils/session";
+import { getErrorMessage } from "../../utils/apiError";
 import ReplaceResumeModal from "./ReplaceResumeModal";
 
 function extractFileName(resumeUrl) {
@@ -90,7 +91,7 @@ export default function ResumeManagementCard() {
       setTimeout(() => setReplaceSuccess(false), 5000);
     } catch (err) {
       setReplaceError(
-        err?.response?.data?.detail || "Could not replace your resume. Please try again."
+        getErrorMessage(err, "Could not replace your resume. Please try again.")
       );
     } finally {
       setReplacing(false);

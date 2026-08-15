@@ -3,6 +3,7 @@ import DashboardLayout from "../components/dashboard/DashboardLayout";
 import api from "../services/api";
 import IndustryDemandChart from "../components/dashboard/IndustryDemandChart";
 import { getCurrentUser } from "../utils/session";
+import { getErrorMessage } from "../utils/apiError";
 
 import {
   Brain,
@@ -56,15 +57,13 @@ export default function CareerIntelligence() {
         } catch (genErr) {
           console.error(genErr);
           setError(
-            genErr?.response?.data?.detail ||
-              "We couldn't generate your Career Intelligence analysis. Please try again."
+            getErrorMessage(genErr, "We couldn't generate your Career Intelligence analysis. Please try again.")
           );
         }
       } else {
         console.error(err);
         setError(
-          err?.response?.data?.detail ||
-            "We couldn't load your Career Intelligence analysis. Please try again."
+          getErrorMessage(err, "We couldn't load your Career Intelligence analysis. Please try again.")
         );
       }
     } finally {
@@ -90,8 +89,7 @@ export default function CareerIntelligence() {
     } catch (err) {
       console.error(err);
       setError(
-        err?.response?.data?.detail ||
-          "Regeneration failed. Please try again."
+        getErrorMessage(err, "Regeneration failed. Please try again.")
       );
     } finally {
       setRegenerating(false);

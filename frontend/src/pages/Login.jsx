@@ -5,6 +5,7 @@ import InputField from "../components/InputField";
 import api from "../services/api";
 import { saveSession } from "../utils/session";
 import { validateEmail } from "../utils/validators";
+import { getErrorMessage } from "../utils/apiError";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -52,8 +53,7 @@ export default function Login() {
 
       navigate("/dashboard");
     } catch (err) {
-      const detail = err?.response?.data?.detail;
-      setError(detail || "Invalid email or password.");
+      setError(getErrorMessage(err, "Invalid email or password."));
     } finally {
       setLoading(false);
     }

@@ -101,7 +101,7 @@ export default function Education({ userType, onNext, onBack }) {
       // Back) can't leave a mismatched value behind.
       year: jobSeeker ? "" : academicYear,
       cgpa: jobSeeker ? "" : String(cgpa),
-      experience_years: jobSeeker ? Number(experienceYears) : "",
+      experience_years: jobSeeker ? Number(experienceYears) : null,
     });
 
     onNext();

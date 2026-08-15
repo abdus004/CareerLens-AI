@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { LifeBuoy, Paperclip, Loader2, CheckCircle2, X } from "lucide-react";
 import api from "../../services/api";
 import { getCurrentUser } from "../../utils/session";
+import { getErrorMessage } from "../../utils/apiError";
 
 const CATEGORIES = [
   "Account",
@@ -79,7 +80,7 @@ export default function ContactSupportForm() {
       setAttachment(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err) {
-      setError(err?.response?.data?.detail || "Could not submit your request. Please try again.");
+      setError(getErrorMessage(err, "Could not submit your request. Please try again."));
     } finally {
       setSubmitting(false);
     }

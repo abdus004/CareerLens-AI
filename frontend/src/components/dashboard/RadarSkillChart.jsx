@@ -8,7 +8,10 @@ import {
 } from "recharts";
 
 const RadarSkillChart = ({ technicalSkills = [] }) => {
-  const data = technicalSkills.slice(0, 6).map((skill) => ({
+  // Radar always shows the top 5 skills for the user's top career
+  // match (see pages/SkillAnalysis.jsx / routes/skills.py:radar_skills)
+  // - never more.
+  const data = technicalSkills.slice(0, 5).map((skill) => ({
     subject: skill.skill,
     score: skill.score,
   }));

@@ -4,8 +4,8 @@ import {
   Bar,
   XAxis,
   YAxis,
-  Tooltip,
   Cell,
+  LabelList,
 } from "recharts";
 
 
@@ -23,7 +23,7 @@ export default function IndustryDemandChart({
 }) {
   return (
     <ResponsiveContainer width="100%" height={250}>
-      <BarChart data={data}>
+      <BarChart data={data} margin={{ top: 24, right: 8, left: 8, bottom: 0 }}>
         <XAxis
           dataKey="year"
           tick={{ fill: "#9CA3AF", fontSize: 12 }}
@@ -33,26 +33,31 @@ export default function IndustryDemandChart({
 
         <YAxis hide />
 
-        <Tooltip
-          cursor={{ fill: "transparent" }}
-          contentStyle={{
-            background: "#1F2937",
-            border: "none",
-            borderRadius: "10px",
-          }}
-        />
+        {/*
+          No <Tooltip> here on purpose - it previously rendered a small
+          dark hover box over each bar. The per-year demand values are
+          still fully visible (not just on hover) via the LabelList
+          above each bar below, so no data is lost by removing it.
+        */}
 
         <Bar
-  dataKey="demand"
+          dataKey="demand"
           radius={[8, 8, 0, 0]}
           barSize={24}
         >
           {data.map((entry, index) => (
             <Cell
               key={index}
-              fill={colors[index]}
+              fill={colors[index % colors.length]}
             />
           ))}
+          <LabelList
+            dataKey="demand"
+            position="top"
+            fill="#E5E7EB"
+            fontSize={12}
+            fontWeight={600}
+          />
         </Bar>
       </BarChart>
     </ResponsiveContainer>

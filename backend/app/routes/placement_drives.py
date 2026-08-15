@@ -1,3 +1,4 @@
+import json
 from typing import Optional
 from datetime import date
 
@@ -68,6 +69,23 @@ def get_recommended_drives(
             .execute()
         )
         profile = profile_res.data if profile_res and profile_res.data else None
+
+        # profiles.skills / career_goal are stored as JSON-encoded
+        # strings (see routes/profile.py), not native lists - decoding
+        # them here matters, since drive_matching_service builds its
+        # relevance signal with `list.extend(profile["skills"])`. Left
+        # un-decoded, that silently iterated the JSON string character
+        # by character (and treated career_goal as one giant garbage
+        # token), quietly degrading every recommendation's relevance
+        # score without ever raising an error.
+        if profile:
+            for field in ("skills", "career_goal"):
+                value = profile.get(field)
+                if isinstance(value, str):
+                    try:
+                        profile[field] = json.loads(value)
+                    except Exception:
+                        profile[field] = []
 
         career_res = (
             supabase

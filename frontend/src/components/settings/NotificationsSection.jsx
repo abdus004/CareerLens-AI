@@ -3,6 +3,7 @@ import { Bell, Loader2 } from "lucide-react";
 import api from "../../services/api";
 import { useProfile } from "../../context/ProfileContext";
 import { getCurrentUser } from "../../utils/session";
+import { getErrorMessage } from "../../utils/apiError";
 
 const TOGGLES = [
   {
@@ -75,7 +76,7 @@ export default function NotificationsSection() {
       });
     } catch (err) {
       updateProfile({ [key]: previousValue });
-      setError(err?.response?.data?.detail || "Could not save your preference.");
+      setError(getErrorMessage(err, "Could not save your preference."));
     } finally {
       setSavingKey(null);
     }

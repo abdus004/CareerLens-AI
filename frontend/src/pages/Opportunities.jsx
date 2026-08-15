@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import api from "../services/api";
 import { getCurrentUser } from "../utils/session";
+import { getErrorMessage } from "../utils/apiError";
 import {
   Building2,
   MapPin,
@@ -19,9 +20,13 @@ import {
 // first" dependency errors the backend returns (see
 // backend/app/routes/jobs.py:_load_user_context) and turns them into
 // a specific, actionable state instead of a generic error message.
+//
+// Goes through getErrorMessage() (always a string) rather than the
+// raw detail field directly - a 422 validation error's detail is an
+// ARRAY of {type, loc, msg} objects, and calling .toLowerCase() on
+// that directly would throw, not just render badly.
 function detectMissingDependency(err) {
-  const detail = err?.response?.data?.detail || "";
-  const lower = detail.toLowerCase();
+  const lower = getErrorMessage(err, "").toLowerCase();
 
   if (lower.includes("skill analysis")) return "skills";
   if (lower.includes("career intelligence")) return "career";
@@ -73,8 +78,7 @@ export default function CareerOpportunities() {
       setJobDetails(response.data);
     } catch (err) {
       setDetailsError(
-        err?.response?.data?.detail ||
-          "We couldn't load this job's details. Please try again."
+        getErrorMessage(err, "We couldn't load this job's details. Please try again.")
       );
     } finally {
       setDetailsLoading(false);
@@ -124,8 +128,7 @@ export default function CareerOpportunities() {
               setError(null);
             } else {
               setError(
-                genErr?.response?.data?.detail ||
-                  "We couldn't generate your Job Recommendations. Please try again."
+                getErrorMessage(genErr, "We couldn't generate your Job Recommendations. Please try again.")
               );
             }
           }
@@ -137,8 +140,7 @@ export default function CareerOpportunities() {
             setError(null);
           } else {
             setError(
-              err?.response?.data?.detail ||
-                "We couldn't load your Job Recommendations. Please try again."
+              getErrorMessage(err, "We couldn't load your Job Recommendations. Please try again.")
             );
           }
         }
@@ -227,7 +229,7 @@ export default function CareerOpportunities() {
         setMissingDependency(dependency);
       } else {
         setError(
-          err?.response?.data?.detail || "We couldn't search jobs. Please try again."
+          getErrorMessage(err, "We couldn't search jobs. Please try again.")
         );
       }
     } finally {

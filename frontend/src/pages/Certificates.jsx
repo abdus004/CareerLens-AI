@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import api from "../services/api";
 import { getCurrentUser } from "../utils/session";
+import { getErrorMessage } from "../utils/apiError";
 import { AlertTriangle, X } from "lucide-react";
 
 import MyCertificatesSection from "../components/certificates/MyCertificatesSection";
@@ -51,8 +52,7 @@ export default function Certificates() {
     } catch (err) {
       console.error("Error loading My Certificates:", err);
       setMyCertsError(
-        err?.response?.data?.detail ||
-          "We couldn't load your certificates. Please try again."
+        getErrorMessage(err, "We couldn't load your certificates. Please try again.")
       );
     } finally {
       setMyCertsLoading(false);
@@ -72,8 +72,7 @@ export default function Certificates() {
     } catch (err) {
       console.error("Error loading CareerLens certificates:", err);
       setClError(
-        err?.response?.data?.detail ||
-          "We couldn't load your certificates. Please try again."
+        getErrorMessage(err, "We couldn't load your certificates. Please try again.")
       );
     } finally {
       setClLoading(false);
@@ -97,8 +96,7 @@ export default function Certificates() {
     } catch (err) {
       console.error("Error loading recommendations:", err);
       setRecError(
-        err?.response?.data?.detail ||
-          "We couldn't load your certification recommendations. Please try again."
+        getErrorMessage(err, "We couldn't load your certification recommendations. Please try again.")
       );
     } finally {
       setRecLoading(false);
@@ -161,8 +159,7 @@ export default function Certificates() {
       console.error("Error updating progress:", err);
       setRecommendations(previous);
       setActionError(
-        err?.response?.data?.detail ||
-          "We couldn't update your progress. Please try again."
+        getErrorMessage(err, "We couldn't update your progress. Please try again.")
       );
     } finally {
       setUpdatingId(null);

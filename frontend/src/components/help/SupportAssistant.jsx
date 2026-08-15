@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Bot, Send, Loader2, Sparkles } from "lucide-react";
 import api from "../../services/api";
+import { getErrorMessage } from "../../utils/apiError";
 
 const WELCOME_MESSAGE = {
   role: "assistant",
@@ -49,8 +50,7 @@ export default function SupportAssistant() {
       ]);
     } catch (err) {
       setError(
-        err?.response?.data?.detail ||
-          "The support assistant is temporarily unavailable. Please try again."
+        getErrorMessage(err, "The support assistant is temporarily unavailable. Please try again.")
       );
     } finally {
       setSending(false);

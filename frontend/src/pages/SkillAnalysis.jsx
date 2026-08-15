@@ -12,6 +12,7 @@ import WeakSkillsCard from "../components/dashboard/WeakSkillsCard";
 import RecommendedCoursesCard from "../components/dashboard/RecommendedCoursesCard";
 import LearningTimeCard from "../components/dashboard/LearningTimeCard";
 import { getCurrentUser } from "../utils/session";
+import { getErrorMessage } from "../utils/apiError";
 
 export default function SkillAnalysis() {
   const [skills, setSkills] = useState([]);
@@ -92,8 +93,7 @@ export default function SkillAnalysis() {
     } catch (err) {
       console.error("Error fetching skills:", err);
       setError(
-        err?.response?.data?.detail ||
-          "We couldn't load your Skill Analysis. Please try again."
+        getErrorMessage(err, "We couldn't load your Skill Analysis. Please try again.")
       );
     } finally {
       setLoading(false);
@@ -415,21 +415,30 @@ export default function SkillAnalysis() {
 
             <RadarSkillChart
               technicalSkills={
-                analysis?.important_skills
-                  ?.map((importantSkill) => {
-                    const matchedSkill = skills.find(
-                      (skill) =>
-                        skill.name.toLowerCase() === importantSkill.toLowerCase()
-                    );
+                // radar_skills is computed and persisted server-side
+                // (routes/skills.py) as the top 5 technical skills
+                // required for the user's actual TOP CAREER MATCH,
+                // scored against their real, stored skill levels - a
+                // skill the user doesn't have yet still appears at 0
+                // rather than being dropped. Falls back to the older
+                // important-skills-matched-against-owned-skills
+                // approach only for analyses generated before this
+                // field existed (pre-Reanalyze).
+                analysis?.radar_skills?.length
+                  ? analysis.radar_skills
+                  : analysis?.important_skills
+                      ?.map((importantSkill) => {
+                        const matchedSkill = skills.find(
+                          (skill) =>
+                            skill.name.toLowerCase() === importantSkill.toLowerCase()
+                        );
 
-                    return matchedSkill
-                      ? {
-                          skill: matchedSkill.name,
-                          score: matchedSkill.level,
-                        }
-                      : null;
-                  })
-                  .filter(Boolean) || []
+                        return {
+                          skill: matchedSkill ? matchedSkill.name : importantSkill,
+                          score: matchedSkill ? matchedSkill.level : 0,
+                        };
+                      })
+                      .slice(0, 5) || []
               }
             />
 

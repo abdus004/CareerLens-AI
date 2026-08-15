@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.database.db import supabase
 from app.models.profile import ProfileCreate
 from app.utils.security import get_authenticated_email, require_self
+from app.services.skill_unification_service import build_unified_skills
 import json
 import logging
 
@@ -27,9 +28,27 @@ def create_profile(
         logger.info(f"Saving profile: {profile.email}")
         data = profile.model_dump()
 
+        # `skills` here is what the Skills step of Profile Setup (or a
+        # future skills editor) actually submitted - the
+        # PROFILE-selected side of the unified skill set. Stored
+        # verbatim into profile_selected_skills (jsonb) so it survives
+        # independently of whatever the current resume contributes;
+        # build_unified_skills() below is what merges the two into the
+        # deduplicated, technical-only profiles.skills every other
+        # module reads. This is the fix for the previous bug where
+        # uploading a resume silently overwrote/erased profile-selected
+        # skills (they're never touched by a resume upload now, only
+        # merged with it).
+        profile_selected_skills = data["skills"]
+        data["profile_selected_skills"] = profile_selected_skills
+
         # Convert lists to JSON strings
         data["career_goal"] = json.dumps(data["career_goal"])
         data["interests"] = json.dumps(data["interests"])
+        # Placeholder write only - build_unified_skills() overwrites
+        # this immediately below with the real profile+resume merge,
+        # so profile.skills is never left as "profile-selected only"
+        # even momentarily after the response above is read elsewhere.
         data["skills"] = json.dumps(data["skills"])
 
         # Check whether profile already exists
@@ -59,10 +78,23 @@ def create_profile(
                 .execute()
             )
 
+        # Recompute the unified (profile ∪ current-resume, deduplicated,
+        # technical-only) skill set now that profile_selected_skills has
+        # changed. Reuses whatever resume_skills is already on file (a
+        # fresh signup has none yet; an existing user's current resume
+        # skills are preserved and merged in, not overwritten).
+        unified = build_unified_skills(data["email"])
+
+        response_data = response.data
+        if response_data:
+            response_data[0]["skills"] = unified["unified_skills"]
+            response_data[0]["profile_selected_skills"] = profile_selected_skills
+            response_data[0]["resume_skills"] = unified["resume_skills"]
+
         return {
             "success": True,
             "message": "Profile saved successfully",
-            "data": response.data
+            "data": response_data
         }
 
     except HTTPException:

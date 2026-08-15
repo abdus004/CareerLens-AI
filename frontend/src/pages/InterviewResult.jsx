@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import api from "../services/api";
+import { getErrorMessage } from "../utils/apiError";
 import { getCurrentUser } from "../utils/session";
 import {
   RefreshCw,
@@ -85,8 +86,7 @@ export default function InterviewResult() {
       } catch (err) {
         console.error("Error loading interview result:", err);
         setError(
-          err?.response?.data?.detail ||
-            "We couldn't load your results. Please try again."
+          getErrorMessage(err, "We couldn't load your results. Please try again.")
         );
       } finally {
         setLoading(false);
@@ -109,8 +109,7 @@ export default function InterviewResult() {
     } catch (err) {
       console.error("Error retaking interview:", err);
       setError(
-        err?.response?.data?.detail ||
-          "We couldn't start a new attempt. Please try again."
+        getErrorMessage(err, "We couldn't start a new attempt. Please try again.")
       );
       setRetaking(false);
     }

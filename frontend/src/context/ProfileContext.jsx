@@ -38,6 +38,7 @@ const DEFAULT_PROFILE = {
 
   career_goal: [],
   skills: [],
+  profile_selected_skills: [],
   interests: [],
 
   resume_url: "",

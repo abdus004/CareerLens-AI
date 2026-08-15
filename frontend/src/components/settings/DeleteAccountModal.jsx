@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Trash2, Loader2, X, ShieldAlert } from "lucide-react";
 import api from "../../services/api";
 import { getCurrentUser, clearSession } from "../../utils/session";
+import { getErrorMessage } from "../../utils/apiError";
 import InputField from "../InputField";
 
 export default function DeleteAccountModal({ onClose }) {
@@ -40,7 +41,7 @@ export default function DeleteAccountModal({ onClose }) {
       clearSession();
       navigate("/", { replace: true });
     } catch (err) {
-      setError(err?.response?.data?.detail || "Could not delete your account. Please try again.");
+      setError(getErrorMessage(err, "Could not delete your account. Please try again."));
       setSubmitting(false);
     }
   };

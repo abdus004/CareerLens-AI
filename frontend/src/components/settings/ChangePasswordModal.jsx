@@ -2,6 +2,7 @@ import { useState } from "react";
 import { KeyRound, Loader2, X, CheckCircle2 } from "lucide-react";
 import api from "../../services/api";
 import { getCurrentUser } from "../../utils/session";
+import { getErrorMessage } from "../../utils/apiError";
 import InputField from "../InputField";
 
 const EMPTY_FORM = { current_password: "", new_password: "", confirm_password: "" };
@@ -51,7 +52,7 @@ export default function ChangePasswordModal({ onClose }) {
       setSuccess(true);
       setForm(EMPTY_FORM);
     } catch (err) {
-      setError(err?.response?.data?.detail || "Could not update your password. Please try again.");
+      setError(getErrorMessage(err, "Could not update your password. Please try again."));
     } finally {
       setSubmitting(false);
     }

@@ -3,6 +3,7 @@ import { Camera, Loader2, Trash2 } from "lucide-react";
 import api from "../../services/api";
 import { useProfile } from "../../context/ProfileContext";
 import { getCurrentUser } from "../../utils/session";
+import { getErrorMessage } from "../../utils/apiError";
 import AvatarCropModal from "./AvatarCropModal";
 
 const PLACEHOLDER_AVATAR = "https://i.pravatar.cc/150";
@@ -68,7 +69,7 @@ export default function AvatarUploader() {
       setShowCropModal(false);
       setPendingFile(null);
     } catch (err) {
-      setError(err?.response?.data?.detail || "Could not upload your photo. Please try again.");
+      setError(getErrorMessage(err, "Could not upload your photo. Please try again."));
     } finally {
       setUploading(false);
     }
@@ -85,7 +86,7 @@ export default function AvatarUploader() {
       await api.delete("/settings/avatar", { params: { email: user.email } });
       updateProfile({ avatar_url: "" });
     } catch (err) {
-      setError(err?.response?.data?.detail || "Could not remove your photo.");
+      setError(getErrorMessage(err, "Could not remove your photo."));
     } finally {
       setUploading(false);
     }

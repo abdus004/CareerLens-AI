@@ -4,6 +4,7 @@ import AuthLayout from "../components/AuthLayout";
 import InputField from "../components/InputField";
 import api from "../services/api";
 import { saveSession } from "../utils/session";
+import { getErrorMessage } from "../utils/apiError";
 import { Check, X, Loader2 } from "lucide-react";
 import {
   validateFullName,
@@ -123,14 +124,14 @@ export default function Signup() {
       }
     } catch (err) {
       const status = err?.response?.status;
-      const detail = err?.response?.data?.detail;
+      const message = getErrorMessage(err, "");
 
       if (status === 409) {
         setEmailError(
-          detail || "An account with this email already exists."
+          message || "An account with this email already exists."
         );
-      } else if (detail) {
-        setFormError(detail);
+      } else if (message) {
+        setFormError(message);
       } else {
         setFormError("Unable to connect to the server. Please try again.");
       }

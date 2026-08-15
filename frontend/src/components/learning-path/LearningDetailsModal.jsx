@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   X,
   RefreshCw,
@@ -14,11 +13,11 @@ import {
   MessageSquareText,
   Award,
   Clock,
-  ExternalLink,
   AlertTriangle,
   CheckCircle2,
 } from "lucide-react";
 import api from "../../services/api";
+import { getErrorMessage } from "../../utils/apiError";
 
 function Section({ icon: Icon, title, children, accent = "text-cyan-400" }) {
   return (
@@ -81,7 +80,6 @@ function BulletList({ items, dotClass = "text-cyan-400" }) {
 }
 
 export default function LearningDetailsModal({ email, skill, onClose }) {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
@@ -100,8 +98,7 @@ export default function LearningDetailsModal({ email, skill, onClose }) {
       } catch (err) {
         if (!cancelled) {
           setError(
-            err?.response?.data?.detail ||
-              "We couldn't load this topic's learning details. Please try again."
+            getErrorMessage(err, "We couldn't load this topic's learning details. Please try again.")
           );
         }
       } finally {
@@ -265,16 +262,9 @@ export default function LearningDetailsModal({ email, skill, onClose }) {
                   <Award className="text-yellow-400" size={18} />
                   <h3 className="text-white font-semibold">Recommended Certification</h3>
                 </div>
-                <p className="text-gray-300 text-sm mb-3">
+                <p className="text-gray-300 text-sm">
                   {details.recommended_certification || "No specific certification recommended."}
                 </p>
-                <button
-                  onClick={() => navigate("/certificates")}
-                  className="w-full py-2 rounded-lg bg-gradient-to-r from-violet-600 to-cyan-500 text-white text-sm font-medium hover:opacity-90 transition flex items-center justify-center gap-1.5"
-                >
-                  <ExternalLink size={14} />
-                  View in Certificates
-                </button>
               </div>
             </div>
           </div>

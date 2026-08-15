@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import api from "../services/api";
 import { getCurrentUser } from "../utils/session";
+import { getErrorMessage } from "../utils/apiError";
 import {
   RefreshCw,
   CheckCircle2,
@@ -95,8 +96,7 @@ export default function AssessmentResult() {
       } catch (err) {
         console.error("Error loading assessment result:", err);
         setError(
-          err?.response?.data?.detail ||
-            "We couldn't load your results. Please try again."
+          getErrorMessage(err, "We couldn't load your results. Please try again.")
         );
       } finally {
         setLoading(false);
@@ -117,8 +117,7 @@ export default function AssessmentResult() {
     } catch (err) {
       console.error("Error retaking assessment:", err);
       setError(
-        err?.response?.data?.detail ||
-          "We couldn't start a new attempt. Please try again."
+        getErrorMessage(err, "We couldn't start a new attempt. Please try again.")
       );
       setRetaking(false);
     }
@@ -138,8 +137,7 @@ export default function AssessmentResult() {
     } catch (err) {
       console.error("Error generating certificate:", err);
       setCertError(
-        err?.response?.data?.detail ||
-          "We couldn't generate your certificate. Please try again."
+        getErrorMessage(err, "We couldn't generate your certificate. Please try again.")
       );
     } finally {
       setDownloadingCert(false);
