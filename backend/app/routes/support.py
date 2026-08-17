@@ -40,7 +40,18 @@ class SupportChatRequest(BaseModel):
 
 
 @router.post("/assistant")
-def support_assistant_chat(payload: SupportChatRequest):
+def support_assistant_chat(
+    payload: SupportChatRequest,
+    auth_email: str = Depends(get_authenticated_email),
+):
+    """
+    Requires authentication (auth_email is otherwise unused - this
+    route doesn't read/write any email-owned data) purely so this
+    can't be called by a logged-out client to run up Gemini usage for
+    free. The frontend already sends the auth header on this call via
+    the shared `api` client, so this is a backend-only fix with no
+    frontend change needed.
+    """
     message = (payload.message or "").strip()
     if not message:
         raise HTTPException(status_code=400, detail="Message cannot be empty.")

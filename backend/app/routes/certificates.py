@@ -83,7 +83,10 @@ ALLOWED_UPLOAD_CONTENT_TYPES = {
 
 
 @router.post("/extract")
-async def extract_certificate(file: UploadFile = File(...)):
+async def extract_certificate(
+    file: UploadFile = File(...),
+    auth_email: str = Depends(get_authenticated_email),
+):
     """
     Step 1 of the Upload Certificate "AI Extraction" flow (see
     certificate_ai_service.extract_certificate_fields, which reuses the
@@ -97,6 +100,13 @@ async def extract_certificate(file: UploadFile = File(...)):
     pattern the product spec warns against (that's about not
     regenerating unchanged AI *recommendations*, not about skipping a
     user-initiated read of a brand new file).
+
+    Requires authentication (auth_email is otherwise unused - there's
+    no email-owned resource here, nothing is persisted by this route)
+    purely so this can't be called by a logged-out client to run up
+    Gemini usage for free. The frontend already sends the auth header
+    on this call via the shared `api` client, so this is a backend-only
+    fix with no frontend change needed.
     """
     if file.content_type not in ALLOWED_UPLOAD_CONTENT_TYPES:
         raise HTTPException(
