@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
+import api from "../services/api";
 import {
   FileText,
   Upload,
@@ -31,12 +32,16 @@ const handleAnalyzeResume = async () => {
     const formData = new FormData();
     formData.append("file", resume);
 
-    const response = await fetch("http://127.0.0.1:8000/resume/analyze", {
-      method: "POST",
-      body: formData,
+    // Routed through the shared api client (services/api.js) instead
+    // of a hardcoded localhost fetch, so this works against whatever
+    // backend VITE_API_URL points at. Content-Type is explicitly
+    // unset so the browser can add the multipart boundary itself
+    // (the client's default JSON header would otherwise override it).
+    const response = await api.post("/resume/analyze", formData, {
+      headers: { "Content-Type": undefined },
     });
 
-    const data = await response.json();
+    const data = response.data;
 
     setAnalysis(data);
     setMessage("✅ Resume analyzed successfully!");

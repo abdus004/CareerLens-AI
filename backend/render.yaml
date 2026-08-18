@@ -1,0 +1,31 @@
+# Optional Render Blueprint - lets Render auto-configure this service
+# instead of clicking through the New Web Service form by hand.
+# In the Render dashboard: New -> Blueprint -> point at this repo.
+# Root Directory below assumes frontend/ and backend/ are siblings
+# at the repo root, matching this project's layout.
+services:
+  - type: web
+    name: careerlens-ai-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: GEMINI_API_KEY_1
+        sync: false
+      - key: GEMINI_API_KEY_2
+        sync: false
+      - key: GEMINI_API_KEY_3
+        sync: false
+      - key: GEMINI_API_KEY_4
+        sync: false
+      - key: GEMINI_API_KEY_5
+        sync: false
+      - key: GEMINI_API_KEY_6
+        sync: false
+      - key: FRONTEND_ORIGINS
+        sync: false
