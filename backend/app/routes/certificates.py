@@ -11,7 +11,41 @@ from app.services import (
     certificate_recommendation_service,
     user_certificate_service,
 )
+from app.services.notification_service import create_notification
 from app.utils.security import get_authenticated_email, require_self
+
+
+def _notify_certificate_added(email: str, row: dict) -> None:
+    """
+    Best-effort - see notification_service.py. Shared by both upload
+    paths below (My Certificates upload + completing a Recommended
+    Certification). The certificate's own name is folded into the
+    notification title (not just the message) so uploading several
+    different certificates back-to-back each gets its own
+    notification - create_notification's dedup key is (email, type,
+    title), and a bare, identical "Certificate verified" title for
+    every upload would otherwise incorrectly collapse two genuinely
+    different certificates uploaded within the same few minutes into
+    one notification.
+    """
+    name = row.get("certificate_name") or "Untitled Certificate"
+
+    create_notification(
+        email=email,
+        notif_type="certificate",
+        title=f"Certificate verified: {name}",
+        message="Your certificate has been successfully added.",
+        link="/certificates",
+    )
+
+    if row.get("career_relevant"):
+        create_notification(
+            email=email,
+            notif_type="certificate_relevance",
+            title=f"Career profile updated: {name}",
+            message="Your relevant certificate improved your career profile.",
+            link="/career-intelligence",
+        )
 
 logger = logging.getLogger(__name__)
 
@@ -203,6 +237,7 @@ async def upload_my_certificate(
             career_relevant=relevance["career_relevant"],
             relevance_note=relevance["relevance_note"],
         )
+        _notify_certificate_added(email, row)
         return {"success": True, "data": row}
     except HTTPException:
         raise
@@ -322,6 +357,7 @@ async def complete_recommendation(
             career_relevant=True,
             relevance_note="Completed from your personalized certificate recommendations.",
         )
+        _notify_certificate_added(email, row)
         return {"success": True, "data": row}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

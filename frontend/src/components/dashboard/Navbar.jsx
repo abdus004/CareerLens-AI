@@ -1,6 +1,7 @@
-import { Search, Bell, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../context/ProfileContext";
+import NotificationBell from "./NotificationBell";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -26,81 +27,9 @@ export default function Navbar() {
     >
       <div className="flex items-center gap-4">
 
-        {/* Search */}
-
-        <div className="relative">
-
-          <Search
-            size={18}
-            className="
-              absolute
-              left-4
-              top-1/2
-              -translate-y-1/2
-              text-gray-500
-            "
-          />
-
-          <input
-            type="text"
-            placeholder="Search..."
-            className="
-              w-[240px]
-              h-10
-              rounded-xl
-              bg-white/5
-              border
-              border-white/10
-              pl-11
-              pr-4
-              text-white
-              placeholder:text-gray-500
-              outline-none
-              transition-all
-              duration-300
-              focus:border-violet-500
-            "
-          />
-
-        </div>
-
         {/* Notification */}
 
-        <button
-          className="
-            relative
-            w-10
-            h-10
-            rounded-xl
-            bg-white/5
-            border
-            border-white/10
-            flex
-            items-center
-            justify-center
-            hover:bg-white/10
-            transition
-          "
-        >
-
-          <Bell
-            size={18}
-            className="text-white"
-          />
-
-          <span
-            className="
-              absolute
-              top-2
-              right-2
-              w-2
-              h-2
-              rounded-full
-              bg-violet-500
-            "
-          />
-
-        </button>
+        <NotificationBell />
 
         {/* Profile */}
 

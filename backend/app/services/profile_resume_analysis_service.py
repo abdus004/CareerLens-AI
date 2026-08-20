@@ -4,6 +4,7 @@ import json
 from app.database.db import supabase
 from app.ai.gemini import generate_json
 from app.ai.prompts import profile_resume_analysis_prompt
+from app.services.notification_service import create_notification
 
 
 def _hash_resume_text(resume_text: str) -> str:
@@ -126,5 +127,17 @@ def run_profile_resume_analysis(email: str, resume_text: str) -> dict:
         ai_suggestions_row,
         on_conflict="email"
     ).execute()
+
+    # Best-effort - see notification_service.py. Only reached when a
+    # resume was actually (re)analyzed above, not on the "unchanged,
+    # reused the stored result" early-return path, so this never fires
+    # for a no-op call.
+    create_notification(
+        email=email,
+        notif_type="resume",
+        title="Resume analysis completed",
+        message="Your resume was updated successfully.",
+        link="/resume-analyzer",
+    )
 
     return resume_analysis_row

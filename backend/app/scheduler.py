@@ -3,7 +3,7 @@ from datetime import datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from app.services.placement_drive_service import sync_all_sources
+from app.services.placement_drive_service import sync_all_sources, notify_upcoming_deadlines
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,17 @@ def _run_sync_job():
         # The scheduler must survive a bad run - an uncaught exception
         # here would silently kill all future scheduled runs too.
         logger.exception("Placement drives sync failed")
+        return
+
+    # Separate try/except: a failure notifying students about upcoming
+    # deadlines must never be confused with (or block/retry as) a sync
+    # failure - the sync above already succeeded and shouldn't be
+    # logged as broken just because this best-effort follow-up step
+    # had a problem.
+    try:
+        notify_upcoming_deadlines()
+    except Exception:
+        logger.exception("Placement drive deadline notifications failed")
 
 
 def start_scheduler():

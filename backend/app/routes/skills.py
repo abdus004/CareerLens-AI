@@ -9,6 +9,7 @@ from app.ai.gemini import generate_json
 from app.ai.prompts import skill_analysis_prompt
 from app.services.certificate_bonus_service import get_certificate_bonus, apply_bonus
 from app.services.skill_unification_service import is_soft_skill, normalize_skill_name
+from app.services.notification_service import create_notification
 from app.data.role_skills import find_role_key_skills
 from app.utils.security import get_authenticated_email, require_self
 
@@ -267,6 +268,16 @@ def run_skill_analysis(email: str):
             },
             on_conflict="email"
         ).execute()
+
+        # Best-effort - see notification_service.py. Fires only once
+        # the skill analysis itself has actually been saved above.
+        create_notification(
+            email=email,
+            notif_type="skills",
+            title="Skill analysis updated",
+            message="Your skills have been refreshed based on your latest resume.",
+            link="/skill-analysis",
+        )
 
         return result
 

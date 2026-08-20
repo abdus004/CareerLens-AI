@@ -4,6 +4,7 @@ from app.ai.gemini import generate_json
 from app.ai.prompts import career_recommendation_prompt
 from app.services.learning_path_service import generate_learning_path
 from app.services.certificate_bonus_service import get_certificate_bonus, apply_bonus
+from app.services.notification_service import create_notification
 from app.utils.security import get_authenticated_email, require_self
 import json
 
@@ -98,6 +99,17 @@ def generate_career_analysis(email: str):
             )
             .execute()
         )
+
+    # Best-effort - see notification_service.py. Fires only once the
+    # career analysis itself has actually been saved above.
+    create_notification(
+        email=email,
+        notif_type="career",
+        title="Career recommendations updated",
+        message="Your top career recommendations have changed.",
+        link="/career-intelligence",
+    )
+
     learning_path = generate_learning_path(
         result["recommended_role"],
         profile["skills"]
@@ -110,7 +122,14 @@ def generate_career_analysis(email: str):
             "learning_path": learning_path["learning_path"]
         }
     ).execute()
-    
+
+    create_notification(
+        email=email,
+        notif_type="learning_path",
+        title="Learning path updated",
+        message="Your personalized learning path has been refreshed.",
+        link="/learning-path",
+    )
 
     return result
 

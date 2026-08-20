@@ -55,7 +55,12 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <WelcomeCard profile={profile} />
+      <WelcomeCard
+        profile={profile}
+        career={career}
+        resumeAnalysis={resumeAnalysis}
+        aiSuggestions={aiSuggestions}
+      />
 
       <StatsCards stats={stats} />
 

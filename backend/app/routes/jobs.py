@@ -12,6 +12,7 @@ from app.services.job_matching_service import (
     compute_match,
     compute_match_fingerprint,
 )
+from app.services.notification_service import create_notification
 from app.utils.security import get_authenticated_email, require_self
 
 router = APIRouter(
@@ -217,6 +218,16 @@ def _generate_and_save_recommendations(email: str):
         },
         on_conflict="email"
     ).execute()
+
+    # Best-effort - see notification_service.py. Fires only once the
+    # recommendations themselves have actually been saved above.
+    create_notification(
+        email=email,
+        notif_type="jobs",
+        title="New job recommendations available",
+        message="New jobs matching your profile are available.",
+        link="/opportunities",
+    )
 
     return _attach_job_details(top_matches), total_matching
 
