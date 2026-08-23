@@ -1,6 +1,7 @@
 import json
+import threading
 from typing import Optional
-from datetime import date
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -8,11 +9,27 @@ from app.database.db import supabase
 from app.services.placement_drive_service import sync_all_sources
 from app.services.drive_matching_service import rank_recommended_drives
 from app.utils.security import get_authenticated_email, require_self
+from app.utils.errors import raise_clean_500
 
 router = APIRouter(
     prefix="/placement-drives",
     tags=["Placement Drives"]
 )
+
+# This app has no per-IP/per-user request-rate-limiting middleware
+# anywhere, and /refresh below is the one route that fires real
+# outbound calls to external services (Greenhouse/Lever) on every hit
+# with no cost cap - previously "must be a logged-in user" was the
+# ONLY guard, so any authenticated user could trigger unlimited syncs
+# back-to-back. In-memory + a lock is enough for this project's actual
+# deployment (a single Render web service instance) and is explicitly
+# a stopgap, same as the real fix (an admin role) noted in
+# refresh_placement_drives' own docstring below - this doesn't block
+# the scheduler's own independent 24-hour job in scheduler.py, which
+# calls sync_all_sources() directly rather than through this route.
+_sync_lock = threading.Lock()
+_last_sync_attempt: Optional[datetime] = None
+SYNC_COOLDOWN_SECONDS = 5 * 60
 
 
 def _fetch_active_non_expired_drives():
@@ -110,8 +127,11 @@ def get_recommended_drives(
             "data": top,
         }
 
+    except HTTPException:
+        raise
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.get("")
@@ -147,8 +167,11 @@ def list_placement_drives(limit: Optional[int] = Query(default=None, ge=1)):
             "data": drives,
         }
 
+    except HTTPException:
+        raise
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.get("/{drive_id}")
@@ -174,7 +197,7 @@ def get_placement_drive(drive_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.post("/refresh")
@@ -190,10 +213,40 @@ def refresh_placement_drives(auth_email: str = Depends(get_authenticated_email))
     that at least closes the fully-anonymous abuse path against the
     real Greenhouse/Lever calls this triggers. If you add real admin
     roles later, tighten this to check for one.
+
+    Also rate-limited to one attempt per SYNC_COOLDOWN_SECONDS across
+    ALL callers combined (not per-user) - see the module-level comment
+    above for why.
     """
     _ = auth_email
+
+    global _last_sync_attempt
+
+    with _sync_lock:
+        now = datetime.now(timezone.utc)
+        if _last_sync_attempt is not None:
+            elapsed = (now - _last_sync_attempt).total_seconds()
+            if elapsed < SYNC_COOLDOWN_SECONDS:
+                retry_after = int(SYNC_COOLDOWN_SECONDS - elapsed)
+                raise HTTPException(
+                    status_code=429,
+                    detail=(
+                        "Placement drives were synced recently. "
+                        f"Please try again in {retry_after} seconds."
+                    ),
+                )
+        # Recorded before the sync actually runs, not after it
+        # succeeds - a failed/slow sync still made real outbound calls
+        # to Greenhouse/Lever and should still count against the
+        # cooldown, otherwise repeated failures would bypass the limit
+        # entirely.
+        _last_sync_attempt = now
+
     try:
         summary = sync_all_sources()
         return {"success": True, "summary": summary}
+    except HTTPException:
+        raise
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)

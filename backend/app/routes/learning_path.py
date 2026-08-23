@@ -5,6 +5,7 @@ from app.services.learning_path_service import (
     get_or_generate_topic_details,
 )
 from app.utils.security import get_authenticated_email, require_self
+from app.utils.errors import raise_clean_500
 import json
 
 router = APIRouter(
@@ -103,10 +104,7 @@ def get_learning_path(
         raise
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        raise_clean_500(e)
 
 
 @router.get("/{email}/topic-details")
@@ -176,7 +174,4 @@ def get_topic_details(
         raise
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        raise_clean_500(e)

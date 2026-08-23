@@ -11,6 +11,7 @@ from app.models.mock_interview import (
 from app.services.interview_evaluation_service import evaluate_interview
 from app.services.question_bank_service import select_interview_questions
 from app.utils.security import get_authenticated_email, require_self
+from app.utils.errors import raise_clean_500
 
 router = APIRouter(
     prefix="/mock-interview",
@@ -110,7 +111,7 @@ def start_interview(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.get("/{interview_id}")
@@ -178,7 +179,7 @@ def get_interview(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.post("/{interview_id}/answer")
@@ -208,8 +209,11 @@ def save_answer(
 
         return {"success": True}
 
+    except HTTPException:
+        raise
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.post("/{interview_id}/finish")
@@ -267,7 +271,7 @@ def finish_interview(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.get("/{interview_id}/result")
@@ -294,7 +298,7 @@ def get_result(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.post("/{interview_id}/retake")
@@ -329,4 +333,4 @@ def retake_interview(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)

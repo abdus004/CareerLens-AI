@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.database.db import supabase
 from app.models.profile import ProfileCreate
 from app.utils.security import get_authenticated_email, require_self
+from app.utils.errors import raise_clean_500
 from app.services.skill_unification_service import build_unified_skills
 import json
 import logging
@@ -163,7 +164,4 @@ def get_profile(
         raise
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        raise_clean_500(e)

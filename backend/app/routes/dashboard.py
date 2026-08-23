@@ -1,5 +1,8 @@
+import ipaddress
 import os
+import socket
 import uuid
+from urllib.parse import urlparse
 
 import requests
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -8,12 +11,53 @@ from app.database.db import supabase
 from app.services.resume_parser import extract_text
 from app.services.profile_resume_analysis_service import run_profile_resume_analysis
 from app.utils.security import get_authenticated_email, require_self
+from app.utils.errors import raise_clean_500
 import json
 
 router = APIRouter(
     prefix="/dashboard",
     tags=["Dashboard"]
 )
+
+
+def _is_safe_external_url(url: str) -> bool:
+    """
+    Defense-in-depth against SSRF for the one place in the app that
+    makes a server-side HTTP request to a stored resume_url. The real
+    fix is at write time (models/profile.py's ProfileCreate.resume_url
+    validator, which only ever allows a URL under this project's own
+    Supabase Storage domain) - this is a second, independent check
+    right before the request actually goes out, so a future code path
+    that writes resume_url some other way, or a DNS record for the
+    storage domain being hijacked/rebound, still can't make this
+    backend reach a private/internal address. Resolves the hostname
+    and requires every returned address to be public/routable.
+    """
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return False
+
+    if parsed.scheme != "https" or not parsed.hostname:
+        return False
+
+    try:
+        addr_infos = socket.getaddrinfo(parsed.hostname, None)
+    except Exception:
+        return False
+
+    if not addr_infos:
+        return False
+
+    for _family, _type, _proto, _canonname, sockaddr in addr_infos:
+        try:
+            ip = ipaddress.ip_address(sockaddr[0])
+        except ValueError:
+            return False
+        if not ip.is_global:
+            return False
+
+    return True
 
 
 def _backfill_ai_suggestions(email: str, resume_url: str) -> None:
@@ -35,6 +79,10 @@ def _backfill_ai_suggestions(email: str, resume_url: str) -> None:
     upload_resume() runs at upload time. Best-effort and silent on
     failure, same as the original call site in routes/resume.py.
     """
+    if not _is_safe_external_url(resume_url):
+        print(f"[dashboard] AI Suggestions backfill skipped for {email}: unsafe resume_url")
+        return
+
     temp_path = None
     try:
         response = requests.get(resume_url, timeout=20)
@@ -246,7 +294,4 @@ def get_dashboard(
         raise
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        raise_clean_500(e)

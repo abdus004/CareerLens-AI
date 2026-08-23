@@ -17,6 +17,7 @@ from app.services.assessment_question_bank_service import (
 from app.services.assessment_scoring_service import score_assessment
 from app.services.certificate_service import generate_certificate
 from app.utils.security import get_authenticated_email, require_self
+from app.utils.errors import raise_clean_500
 
 router = APIRouter(
     prefix="/skill-assessment",
@@ -131,7 +132,7 @@ def start_assessment(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.get("/history")
@@ -190,8 +191,11 @@ def get_history(email: str, auth_email: str = Depends(get_authenticated_email)):
 
         return {"success": True, "data": data}
 
+    except HTTPException:
+        raise
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.get("/{assessment_id}")
@@ -257,7 +261,7 @@ def get_assessment(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.post("/{assessment_id}/answer")
@@ -294,7 +298,7 @@ def save_answer(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.post("/{assessment_id}/finish")
@@ -395,7 +399,7 @@ def finish_assessment(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.get("/{assessment_id}/result")
@@ -442,7 +446,7 @@ def get_result(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.get("/{assessment_id}/review")
@@ -520,7 +524,7 @@ def get_review(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.post("/{assessment_id}/certificate")
@@ -535,8 +539,11 @@ def issue_certificate(
         return {"success": True, "data": certificate}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.post("/{assessment_id}/retake")
@@ -570,4 +577,4 @@ def retake_assessment(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)

@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from app.database.db import supabase
 from app.utils.security import get_authenticated_email, require_self
+from app.utils.storage import delete_storage_object as _delete_storage_object
 
 # Reused, not duplicated - see the module docstrings on each of these
 # for why they're safe to call directly as plain Python functions
@@ -30,28 +31,10 @@ SUPPORT_ATTACHMENTS_BUCKET = "support-attachments"
 # ------------------------------------------------------------------
 # Shared helpers
 # ------------------------------------------------------------------
-
-def _delete_storage_object(bucket: str, public_url: str | None) -> None:
-    """
-    Best-effort cleanup only - a failure here should never block a
-    profile update or account deletion that has already succeeded in
-    the database. Parses the object path back out of the public URL
-    Supabase Storage returns (the same get_public_url() shape used by
-    routes/resume.py and services/user_certificate_service.py), since
-    only the URL is persisted, not the raw storage path.
-    """
-    try:
-        if not public_url:
-            return
-        marker = f"/object/public/{bucket}/"
-        idx = public_url.find(marker)
-        if idx == -1:
-            return
-        path = public_url[idx + len(marker):]
-        if path:
-            supabase.storage.from_(bucket).remove([path])
-    except Exception:
-        pass
+# _delete_storage_object now lives in app/utils/storage.py (imported
+# above as _delete_storage_object) so routes/resume.py can reuse the
+# exact same logic - kept under this name here so every call site
+# below is unchanged.
 
 
 def _get_profile_or_404(email: str) -> dict:

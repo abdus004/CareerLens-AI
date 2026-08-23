@@ -14,6 +14,7 @@ from app.services.job_matching_service import (
 )
 from app.services.notification_service import create_notification
 from app.utils.security import get_authenticated_email, require_self
+from app.utils.errors import raise_clean_500
 
 router = APIRouter(
     prefix="/jobs",
@@ -275,7 +276,7 @@ def get_job_recommendations(
 
     except Exception as e:
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.post("/analyze/{email}")
@@ -299,7 +300,7 @@ def analyze_jobs(
 
     except Exception as e:
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.get("/{email}/search")
@@ -353,7 +354,7 @@ def search_jobs(
 
     except Exception as e:
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.get("/{email}/{job_id}")
@@ -440,4 +441,4 @@ def get_job_details(
 
     except Exception as e:
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)

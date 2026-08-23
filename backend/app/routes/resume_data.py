@@ -1,4 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Any, List
+
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+
 from app.database.db import supabase
 from app.utils.security import get_authenticated_email, require_self
 
@@ -6,6 +10,32 @@ router = APIRouter(
     prefix="/resume",
     tags=["Resume Data"]
 )
+
+
+class ResumeDataUpdate(BaseModel):
+    """
+    Every field the resume_data table actually stores - matches
+    resume_data_row in services/profile_resume_analysis_service.py,
+    the only other writer of this table. Listed explicitly so a caller
+    can only ever set THESE columns, never an arbitrary one.
+
+    Previously this endpoint took a raw, untyped `dict` and upserted it
+    verbatim - any key the client sent (including internal columns
+    like resume_hash or updated_at, which live on other tables/are
+    server-managed here) would have been written straight into the
+    row. This is a mass-assignment fix, not a route this app's own
+    frontend currently calls (confirmed via a repo-wide search) - it's
+    reachable by anything that calls the API directly, so it's worth
+    closing off properly rather than leaving it as-is because nothing
+    happens to use it today.
+    """
+    email: str
+    skills: List[str] = []
+    projects: List[dict] = []
+    education: List[dict] = []
+    experience: List[dict] = []
+    certifications: List[Any] = []
+    languages: List[str] = []
 
 
 @router.get("/data/{email}")
@@ -39,17 +69,14 @@ def get_resume_data(
 
 @router.post("/save")
 async def save_resume(
-    data: dict,
+    payload: ResumeDataUpdate,
     auth_email: str = Depends(get_authenticated_email),
 ):
-    target_email = data.get("email")
-    if not target_email:
-        raise HTTPException(status_code=422, detail="email is required.")
-    require_self(target_email, auth_email)
+    require_self(payload.email, auth_email)
 
     response = (
         supabase.table("resume_data")
-        .upsert(data)
+        .upsert(payload.model_dump(), on_conflict="email")
         .execute()
     )
 

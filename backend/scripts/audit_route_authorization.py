@@ -120,7 +120,7 @@ def find_email_bearing_models(models_dir: Path) -> set[str]:
     email_models: set[str] = set()
 
     for path in sorted(models_dir.glob("*.py")):
-        tree = ast.parse(path.read_text(), filename=str(path))
+        tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
         for node in ast.walk(tree):
             if not isinstance(node, ast.ClassDef):
                 continue
@@ -169,7 +169,7 @@ def audit_file(path: Path, email_models: set[str]):
     violations = []
     advisories = []
 
-    tree = ast.parse(path.read_text(), filename=str(path))
+    tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
 
     for node in tree.body:
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):

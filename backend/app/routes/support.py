@@ -18,6 +18,30 @@ router = APIRouter(
 
 SUPPORT_ATTACHMENTS_BUCKET = "support-attachments"
 
+# Ticket attachments are typically a bug screenshot, an error log, or
+# occasionally a document - the frontend's file picker
+# (ContactSupportForm.jsx) has no accept="" restriction at all today,
+# so this allowlist is chosen to comfortably cover those real cases
+# while ruling out HTML/SVG (can carry embedded script - a stored-XSS
+# risk once served back from a public bucket URL), executables, and
+# archives. Previously ANY file type was accepted with no check.
+ALLOWED_ATTACHMENT_CONTENT_TYPES = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    "application/pdf": "pdf",
+    "text/plain": "txt",
+    "application/msword": "doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+}
+
+# Previously unbounded - a ticket attachment is a screenshot/log/small
+# document, not media, so 10 MB is generous headroom without allowing
+# this endpoint to be used to push arbitrarily large uploads through
+# the server.
+MAX_ATTACHMENT_SIZE_BYTES = 10 * 1024 * 1024
+
 
 # ------------------------------------------------------------------
 # CareerLens AI Support Assistant
@@ -158,18 +182,28 @@ async def submit_ticket(
     attachment_name = None
 
     if attachment is not None and attachment.filename:
+        extension = ALLOWED_ATTACHMENT_CONTENT_TYPES.get(attachment.content_type)
+        if not extension:
+            raise HTTPException(
+                status_code=400,
+                detail="Attachments must be an image, PDF, text file, or Word document.",
+            )
+
         file_bytes = await attachment.read()
 
-        ext = ""
-        if "." in attachment.filename:
-            ext = "." + attachment.filename.rsplit(".", 1)[-1]
-        stored_name = f"{uuid.uuid4()}{ext}"
+        if len(file_bytes) > MAX_ATTACHMENT_SIZE_BYTES:
+            raise HTTPException(
+                status_code=400,
+                detail="Attachment is too large. Please upload a file under 10 MB.",
+            )
+
+        stored_name = f"{uuid.uuid4()}.{extension}"
 
         supabase.storage.from_(SUPPORT_ATTACHMENTS_BUCKET).upload(
             path=stored_name,
             file=file_bytes,
             file_options={
-                "content-type": attachment.content_type or "application/octet-stream"
+                "content-type": attachment.content_type
             },
         )
         attachment_url = supabase.storage.from_(SUPPORT_ATTACHMENTS_BUCKET).get_public_url(stored_name)

@@ -6,6 +6,7 @@ from app.services.learning_path_service import generate_learning_path
 from app.services.certificate_bonus_service import get_certificate_bonus, apply_bonus
 from app.services.notification_service import create_notification
 from app.utils.security import get_authenticated_email, require_self
+from app.utils.errors import raise_clean_500
 import json
 
 router = APIRouter(
@@ -148,10 +149,7 @@ def analyze_career(
         raise
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        raise_clean_500(e)
 
 
 @router.get("/{email}")
@@ -195,7 +193,4 @@ def get_career_analysis(
         raise
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        raise_clean_500(e)

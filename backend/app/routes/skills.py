@@ -12,6 +12,7 @@ from app.services.skill_unification_service import is_soft_skill, normalize_skil
 from app.services.notification_service import create_notification
 from app.data.role_skills import find_role_key_skills
 from app.utils.security import get_authenticated_email, require_self
+from app.utils.errors import raise_clean_500
 
 router = APIRouter(
     prefix="/skills",
@@ -80,10 +81,7 @@ def update_skill_levels(
         raise
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        raise_clean_500(e)
 
 
 def _strip_soft_skills(entries):
@@ -343,7 +341,4 @@ def get_skill_analysis(
         raise
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        raise_clean_500(e)

@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, field_validator, model_validator
 
+from app.database.db import SUPABASE_URL
 from app.utils.validators import (
     validate_full_name,
     validate_cgpa,
@@ -13,6 +14,22 @@ from app.utils.validators import (
 )
 
 USER_TYPES = ("Student", "Job Seeker")
+
+# The only legitimate source of profiles.resume_url is the resume
+# upload flow itself (routes/resume.py's public_url, which always
+# comes from supabase.storage.from_("resumes").get_public_url(...)).
+# Previously this field accepted any client-supplied string and wrote
+# it straight into the database - and routes/dashboard.py's
+# _backfill_ai_suggestions later fetches that exact URL server-side
+# (requests.get) whenever ai_suggestions is empty. That meant an
+# authenticated user could point their OWN resume_url at an internal/
+# private address and get the backend to make a request to it (SSRF)
+# just by loading their own Dashboard afterward - no ownership bypass
+# needed, since it was entirely within an otherwise-legitimate "edit
+# my own profile" call. Rejecting anything outside this project's own
+# Supabase Storage domain here closes that off at the one place this
+# value is ever accepted from a client.
+RESUME_PUBLIC_URL_PREFIX = f"{(SUPABASE_URL or '').rstrip('/')}/storage/v1/object/public/resumes/"
 
 
 class ProfileCreate(BaseModel):
@@ -81,6 +98,18 @@ class ProfileCreate(BaseModel):
     def _age(cls, value: int) -> int:
         if value < 13 or value > 100:
             raise ValueError("Please enter a realistic age.")
+        return value
+
+    @field_validator("resume_url")
+    @classmethod
+    def _resume_url(cls, value: str) -> str:
+        value = (value or "").strip()
+        if not value:
+            return value
+        if not value.startswith(RESUME_PUBLIC_URL_PREFIX):
+            raise ValueError(
+                "resume_url must be a URL from this project's own resume storage."
+            )
         return value
 
     @model_validator(mode="after")

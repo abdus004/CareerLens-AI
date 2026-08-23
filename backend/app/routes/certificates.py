@@ -13,6 +13,7 @@ from app.services import (
 )
 from app.services.notification_service import create_notification
 from app.utils.security import get_authenticated_email, require_self
+from app.utils.errors import raise_clean_500
 
 
 def _notify_certificate_added(email: str, row: dict) -> None:
@@ -56,22 +57,10 @@ router = APIRouter(
 
 
 def _raise_clean_500(e: Exception):
-    """
-    Never surface a raw Supabase/Postgres error (a Python dict repr
-    like {'message': ..., 'code': '23514', 'hint': ..., 'details': ...})
-    directly to the user - the frontend displays HTTPException.detail
-    verbatim in an error banner, so anything raised here IS what the
-    user sees. The real error is always logged server-side either way,
-    so nothing is lost for debugging - it just isn't shown raw in the UI.
-    """
-    if isinstance(e, APIError):
-        logger.error("Supabase error in certificates route: %s", e.json() if hasattr(e, "json") else e)
-        raise HTTPException(
-            status_code=500,
-            detail="Something went wrong saving that. Please try again in a moment.",
-        )
-    logger.exception("Unexpected error in certificates route")
-    raise HTTPException(status_code=500, detail="Something went wrong. Please try again.")
+    """Thin wrapper so every existing call site below stays unchanged - the
+    real implementation now lives in app/utils/errors.py and is shared
+    with every other route file."""
+    raise_clean_500(e, logger_name=__name__)
 
 
 @router.get("/")
