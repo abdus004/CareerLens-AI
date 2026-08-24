@@ -103,11 +103,7 @@ def create_profile(
 
     except Exception as e:
         logger.exception(f"Profile save failed: {profile.email}")
-
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        raise_clean_500(e)
 
 
 @router.get("/{email}")

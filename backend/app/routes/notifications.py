@@ -2,6 +2,7 @@
 
 from app.database.db import supabase
 from app.utils.security import get_authenticated_email, require_self
+from app.utils.errors import raise_clean_500
 
 router = APIRouter(
     prefix="/notifications",
@@ -48,8 +49,11 @@ def get_notifications(
             "unread_count": unread_count,
         }
 
+    except HTTPException:
+        raise
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.patch("/{email}/{notification_id}/read")
@@ -76,8 +80,11 @@ def mark_notification_read(
 
         return {"success": True}
 
+    except HTTPException:
+        raise
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.patch("/{email}/read-all")
@@ -98,5 +105,8 @@ def mark_all_notifications_read(
 
         return {"success": True}
 
+    except HTTPException:
+        raise
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)

@@ -283,12 +283,8 @@ def run_skill_analysis(email: str):
         raise
 
     except Exception as e:
-
         traceback.print_exc()   # prints the real error in the terminal
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        raise_clean_500(e)
 
 
 @router.post("/analyze/{email}")

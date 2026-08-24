@@ -1,8 +1,36 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 from app.models.auth import UserSignup, UserLogin
 from app.database.db import supabase
 
+try:
+    from gotrue.errors import AuthError, AuthUnknownError
+except ImportError:  # pragma: no cover - gotrue ships as a supabase dependency
+    AuthError = ()
+    AuthUnknownError = ()
+
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+def _auth_error_detail(e: Exception, fallback: str) -> str:
+    """
+    Supabase's own Auth errors (AuthApiError, AuthInvalidCredentialsError,
+    etc. - all subclasses of AuthError) carry a curated, human-written
+    message specifically meant to be shown to end users ("Invalid login
+    credentials", "Password should be at least N characters", ...) - a
+    fundamentally different, already-safe category from a raw Postgres/
+    PostgREST internal exception (see app/utils/errors.py). AuthUnknownError
+    is the one exception: it wraps an arbitrary unexpected underlying
+    error, so its text is treated the same as any other unsafe exception
+    rather than trusted.
+    """
+    if isinstance(e, AuthError) and not isinstance(e, AuthUnknownError):
+        return str(e)
+    logger.exception(fallback)
+    return fallback
 
 
 @router.post("/signup")
@@ -43,7 +71,10 @@ def signup(user: UserSignup):
                 detail="An account with this email already exists. Please log in instead."
             )
 
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail=_auth_error_detail(e, "We couldn't create your account. Please try again.")
+        )
 
     # When email confirmation IS enabled, Supabase intentionally does
     # NOT raise an error for a duplicate, already-confirmed email - for
@@ -98,4 +129,7 @@ def login(user: UserLogin):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=401, detail=str(e))
+        raise HTTPException(
+            status_code=401,
+            detail=_auth_error_detail(e, "We couldn't log you in. Please check your credentials and try again.")
+        )
