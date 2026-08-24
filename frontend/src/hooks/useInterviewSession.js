@@ -25,7 +25,13 @@ export function useInterviewSession(interviewId, mode) {
   const [answerText, setAnswerText] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const questionStartedAt = useRef(Date.now());
+  // Real value is always set by loadInterview() (on success) before
+  // this is ever read - saveCurrentAnswer can't run until
+  // currentQuestion is set, which only happens after interview data
+  // has loaded. null avoids calling the impure Date.now() during
+  // render itself (previously useRef(Date.now())), with no change in
+  // behavior.
+  const questionStartedAt = useRef(null);
 
   const loadInterview = useCallback(async () => {
     try {
@@ -57,6 +63,12 @@ export function useInterviewSession(interviewId, mode) {
   }, [interviewId]);
 
   useEffect(() => {
+    // loadInterview's setLoading(true)/setError(null) are intentional
+    // and shared with consumers that call the exposed `retry`
+    // function below (= loadInterview itself) - can't be hoisted out
+    // without losing the loading indicator on a manual retry, so this
+    // is an accepted extra render on mount rather than a bug.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadInterview();
   }, [loadInterview]);
 
@@ -102,6 +114,19 @@ export function useInterviewSession(interviewId, mode) {
     }
   }, [currentIndex, interview, saveCurrentAnswer]);
 
+  const finish = useCallback(async () => {
+    setSaving(true);
+    try {
+      await saveCurrentAnswer(false);
+      await api.post(`/mock-interview/${interviewId}/finish`);
+      navigate(`/mock-interview/result/${interviewId}`, { state: { mode } });
+    } catch (err) {
+      console.error("Error finishing interview:", err);
+      setError("We couldn't submit your interview. Please try again.");
+      setSaving(false);
+    }
+  }, [interviewId, navigate, saveCurrentAnswer, mode]);
+
   const skip = useCallback(async () => {
     setSaving(true);
     try {
@@ -122,21 +147,7 @@ export function useInterviewSession(interviewId, mode) {
     } finally {
       setSaving(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, interview, isLastQuestion, saveCurrentAnswer]);
-
-  const finish = useCallback(async () => {
-    setSaving(true);
-    try {
-      await saveCurrentAnswer(false);
-      await api.post(`/mock-interview/${interviewId}/finish`);
-      navigate(`/mock-interview/result/${interviewId}`, { state: { mode } });
-    } catch (err) {
-      console.error("Error finishing interview:", err);
-      setError("We couldn't submit your interview. Please try again.");
-      setSaving(false);
-    }
-  }, [interviewId, navigate, saveCurrentAnswer]);
+  }, [currentIndex, interview, isLastQuestion, saveCurrentAnswer, finish]);
 
   return {
     interview,

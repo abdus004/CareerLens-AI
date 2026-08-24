@@ -72,6 +72,10 @@ export default function CareerIntelligence() {
   }, [generateCareerAnalysis]);
 
   useEffect(() => {
+    // loadCareer's internal setLoading(true) is intentional and
+    // shared with the Retry button below (onClick={loadCareer}) -
+    // can't be hoisted out without losing that indicator on retry.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadCareer();
   }, [loadCareer]);
 

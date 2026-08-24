@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -18,6 +19,8 @@ from app.services.assessment_scoring_service import score_assessment
 from app.services.certificate_service import generate_certificate
 from app.utils.security import get_authenticated_email, require_self
 from app.utils.errors import raise_clean_500
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/skill-assessment",
@@ -383,7 +386,7 @@ def finish_assessment(
             result_row["recommendations"] = feedback["recommendations"]
             result_row["ai_feedback_available"] = True
         except Exception as ai_error:
-            print(f"[Skill Assessment] AI feedback failed (result still saved): {ai_error}")
+            logger.warning("[Skill Assessment] AI feedback failed (result still saved): %s", ai_error)
 
         supabase.table("assessment_results").upsert(
             result_row,

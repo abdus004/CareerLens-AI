@@ -34,6 +34,13 @@ function RecommendationCard({
   const [localProgress, setLocalProgress] = useState(progress_percent);
 
   useEffect(() => {
+    // Re-syncs localProgress whenever the authoritative progress_percent
+    // value actually changes (e.g. after commitProgress's PUT request
+    // resolves and the parent passes back the server value) - not a
+    // case a `key` reset could replace, since we want localProgress to
+    // keep diverging from progress_percent across re-renders of the
+    // SAME card while the user is mid-drag (see the comment above).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalProgress(progress_percent);
   }, [progress_percent]);
 

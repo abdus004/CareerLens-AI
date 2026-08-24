@@ -1,6 +1,6 @@
 import { ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useProfile } from "../../context/ProfileContext";
+import { useProfile } from "../../hooks/useProfile";
 import NotificationBell from "./NotificationBell";
 
 export default function Navbar() {

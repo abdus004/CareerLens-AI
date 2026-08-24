@@ -8,7 +8,7 @@ import Education from "../components/profile/Education";
 import CareerInterest from "../components/profile/CareerInterest";
 import Skills from "../components/profile/Skills";
 import ResumeUpload from "../components/profile/ResumeUpload";
-import { useProfile } from "../context/ProfileContext";
+import { useProfile } from "../hooks/useProfile";
 
 export default function ProfileSetup() {
   const navigate = useNavigate();

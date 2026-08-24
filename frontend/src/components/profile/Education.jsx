@@ -1,6 +1,6 @@
 import { useState } from "react";
 import InputField from "../InputField";
-import { useProfile } from "../../context/ProfileContext";
+import { useProfile } from "../../hooks/useProfile";
 import {
   ACADEMIC_YEARS,
   validateCGPA,

@@ -104,6 +104,13 @@ export default function Certificates() {
   }, [email]);
 
   useEffect(() => {
+    // Each loader's setXLoading(true) is intentional and shared with
+    // later refresh calls after actions (e.g. after uploading a
+    // certificate, or marking one complete - see the other call sites
+    // of these same three functions below) - it can't be hoisted out
+    // of them without losing the loading indicator on those refreshes,
+    // so this is an accepted extra render on mount rather than a bug.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadMyCertificates();
     loadCareerLensCertificates();
     loadRecommendations();

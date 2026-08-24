@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { User, Loader2, CheckCircle2, GraduationCap, Briefcase } from "lucide-react";
 import api from "../../services/api";
-import { useProfile } from "../../context/ProfileContext";
+import { useProfile } from "../../hooks/useProfile";
 import { getCurrentUser } from "../../utils/session";
 import { getErrorMessage } from "../../utils/apiError";
 import InputField from "../InputField";
@@ -47,6 +47,12 @@ export default function ProfileSection() {
   useEffect(() => {
     if (!profileLoaded || hydrated) return;
 
+    // One-time hydration from an async external source (ProfileContext,
+    // which loads after mount) into local editable state - correctly
+    // guarded above to run exactly once, not on every profileData
+    // change, which is what keeps in-progress edits from being
+    // clobbered by e.g. an avatar upload elsewhere updating context.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm({
       user_type: profileData.user_type || "",
       full_name: profileData.full_name || "",

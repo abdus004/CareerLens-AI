@@ -212,6 +212,12 @@ export default function UpcomingDrives() {
   };
 
   useEffect(() => {
+    // loadRecommended's setLoading(true) is intentional and shared
+    // with the Retry button below (onClick={loadRecommended}) - it
+    // can't be hoisted out without losing the loading indicator on a
+    // manual retry, so this is an accepted extra render on mount
+    // rather than a bug.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadRecommended();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

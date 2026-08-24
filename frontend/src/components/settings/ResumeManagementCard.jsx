@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { FileText, Download, RefreshCcw, CheckCircle2 } from "lucide-react";
 import api from "../../services/api";
-import { useProfile } from "../../context/ProfileContext";
+import { useProfile } from "../../hooks/useProfile";
 import { getCurrentUser } from "../../utils/session";
 import { getErrorMessage } from "../../utils/apiError";
 import ReplaceResumeModal from "./ReplaceResumeModal";

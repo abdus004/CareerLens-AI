@@ -1,5 +1,5 @@
 import { Palette, Moon, Sun, Check } from "lucide-react";
-import { useTheme } from "../../context/ThemeContext";
+import { useTheme } from "../../hooks/useTheme";
 
 const OPTIONS = [
   {

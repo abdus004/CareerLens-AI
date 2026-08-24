@@ -16,8 +16,11 @@ insert itself failed.
 """
 
 from datetime import datetime, timedelta, timezone
+import logging
 
 from app.database.db import supabase
+
+logger = logging.getLogger(__name__)
 
 
 def create_notification(
@@ -88,5 +91,5 @@ def create_notification(
         return result.data[0] if result and result.data else None
 
     except Exception as e:
-        print(f"[notifications] failed to create '{title}' for {email}: {e}")
+        logger.warning("[notifications] failed to create '%s' for %s: %s", title, email, e)
         return None

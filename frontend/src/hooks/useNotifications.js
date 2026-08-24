@@ -50,6 +50,11 @@ export function useNotifications() {
   }, []);
 
   useEffect(() => {
+    // loadNotifications' internal setLoading(true) is intentional and
+    // shared with the interval poll below (and, per this hook's own
+    // docstring, an immediate refetch whenever the dropdown opens
+    // elsewhere) - can't be hoisted out without losing that behavior.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadNotifications();
 
     const interval = setInterval(loadNotifications, POLL_INTERVAL_MS);

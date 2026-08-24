@@ -3,7 +3,7 @@ import { motion, useMotionValue, useSpring } from "framer-motion";
 import { FileText, BarChart3, Compass, Map, MessageSquare, Briefcase, Award } from "lucide-react";
 
 import BrandIcon from "../BrandIcon";
-import { useTheme } from "../../context/ThemeContext";
+import { useTheme } from "../../hooks/useTheme";
 
 const NODES = [
   { key: "resume", label: "Resume", icon: FileText, color: "#a78bfa" },

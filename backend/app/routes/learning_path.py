@@ -43,16 +43,22 @@ def get_learning_path(
         # -----------------------------
         # Fetch profile
         # -----------------------------
+        # maybe_single() (not single()) so a missing profile hits the
+        # 404 below instead of single() raising an APIError first (see
+        # the identical fix + explanation in routes/career.py). Note
+        # maybe_single().execute() returns None itself (not a response
+        # object) when zero rows match - `if not profile` below handles
+        # that.
         profile = (
             supabase
             .table("profiles")
             .select("skills")
             .eq("email", email)
-            .single()
+            .maybe_single()
             .execute()
         )
 
-        if not profile.data:
+        if not profile or not profile.data:
             raise HTTPException(
                 status_code=404,
                 detail="Profile not found"
@@ -68,11 +74,11 @@ def get_learning_path(
             .table("career_analysis")
             .select("analysis")
             .eq("email", email)
-            .single()
+            .maybe_single()
             .execute()
         )
 
-        if not career.data:
+        if not career or not career.data:
             raise HTTPException(
                 status_code=404,
                 detail="Career analysis not found"

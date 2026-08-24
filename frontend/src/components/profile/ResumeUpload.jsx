@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useProfile } from "../../context/ProfileContext";
+import { useProfile } from "../../hooks/useProfile";
 import api from "../../services/api";
 import { getErrorMessage } from "../../utils/apiError";
 

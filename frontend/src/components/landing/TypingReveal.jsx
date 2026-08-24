@@ -17,6 +17,10 @@ export default function TypingReveal({ text, className = "", startDelay = 0.6, s
     ).matches;
 
     if (prefersReducedMotion) {
+      // Reacting to a real external system (the browser's media-query
+      // state, which can't be known during render) - exactly what
+      // useEffect is for.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVisibleChars(text.length);
       return;
     }

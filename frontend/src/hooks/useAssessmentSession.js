@@ -69,6 +69,11 @@ export function useAssessmentSession(assessmentId) {
   }, [assessmentId]);
 
   useEffect(() => {
+    // loadAssessment's internal setLoading(true)/setError(null) are
+    // intentional and shared with consumers that call the exposed
+    // `retry` function below (= loadAssessment itself) - same shape
+    // as useInterviewSession.js's identical fix.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadAssessment();
   }, [loadAssessment]);
 

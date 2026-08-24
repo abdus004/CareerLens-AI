@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import api from "../services/api";
-
-const ProfileContext = createContext();
+import { ProfileContext } from "./ProfileContextObject";
 
 // Single source of truth for the logged-in user's profile, shared by:
 //  - the Profile Setup wizard (original purpose of this context)
@@ -107,5 +106,3 @@ export const ProfileProvider = ({ children }) => {
     </ProfileContext.Provider>
   );
 };
-
-export const useProfile = () => useContext(ProfileContext);

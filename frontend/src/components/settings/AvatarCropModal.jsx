@@ -31,7 +31,14 @@ export default function AvatarCropModal({ file, onCancel, onSave, saving, error 
   // <img> and the final canvas render - freed on unmount/file change.
   useEffect(() => {
     if (!file) return;
+    // URL.createObjectURL needs a matching cleanup
+    // (URL.revokeObjectURL below) or it leaks memory - that
+    // requirement is what makes this a genuine useEffect case (a real
+    // external resource with a lifecycle), not just derived state.
+    // The accompanying resets below are for the same "new file"
+    // transition, not independent synchronous setState calls.
     const url = URL.createObjectURL(file);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setImageUrl(url);
     setNaturalSize(null);
     setZoom(1);

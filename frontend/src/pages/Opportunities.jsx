@@ -91,7 +91,7 @@ export default function CareerOpportunities() {
   // failure surfaces as a visible, retryable error instead of leaving
   // the page blank.
   const loadRecommendations = useCallback(
-    async (attemptedAutoGenerate = false) => {
+    async function loadRecommendationsImpl(attemptedAutoGenerate = false) {
       const user = getCurrentUser();
 
       if (!user?.email) {
@@ -119,7 +119,15 @@ export default function CareerOpportunities() {
         if (status === 404 && !attemptedAutoGenerate) {
           try {
             await api.post(`/jobs/analyze/${user.email}`);
-            return loadRecommendations(true);
+            // Recursive call via the named function expression's own
+            // name (loadRecommendationsImpl), not the outer const
+            // (loadRecommendations) - avoids referencing a binding
+            // that, from the parser's point of view, isn't finished
+            // being declared yet. Always safe either way at runtime
+            // (this only ever executes once the component has fully
+            // rendered), but this form doesn't need a lint suppression
+            // to say so.
+            return loadRecommendationsImpl(true);
           } catch (genErr) {
             const dependency = detectMissingDependency(genErr);
 
@@ -152,7 +160,9 @@ export default function CareerOpportunities() {
   );
 
   useEffect(() => {
-    setLoading(true);
+    // No setLoading(true) here - loading already starts true (see
+    // useState(true) above). The Retry button below still calls
+    // setLoading(true) explicitly for its own re-trigger.
     loadRecommendations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

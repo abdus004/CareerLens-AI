@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import api from "../services/api";
 import { getCurrentUser } from "../utils/session";
+import { ThemeContext } from "./ThemeContextObject";
 
 // Settings > Appearance - the ONE global source of truth for theme.
 //
@@ -21,7 +22,6 @@ import { getCurrentUser } from "../utils/session";
 // been applied (from the user, or from the server), nothing can
 // silently overwrite it again for the rest of the session.
 
-const ThemeContext = createContext();
 const STORAGE_KEY = "clens_theme";
 
 function applyThemeClass(theme) {
@@ -121,5 +121,3 @@ export const ThemeProvider = ({ children }) => {
     </ThemeContext.Provider>
   );
 };
-
-export const useTheme = () => useContext(ThemeContext);

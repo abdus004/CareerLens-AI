@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { useTheme } from "../../context/ThemeContext";
+import { useTheme } from "../../hooks/useTheme";
 
 /**
  * Lightweight, always-on animated backdrop for the whole landing page:

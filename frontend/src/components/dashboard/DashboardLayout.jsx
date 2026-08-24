@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
-import { useProfile } from "../../context/ProfileContext";
-import { useTheme } from "../../context/ThemeContext";
+import { useProfile } from "../../hooks/useProfile";
+import { useTheme } from "../../hooks/useTheme";
 import { getCurrentUser } from "../../utils/session";
 
 export default function DashboardLayout({ children }) {

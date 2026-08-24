@@ -38,7 +38,6 @@ export default function LearningPath() {
     };
 
     fetchLearningPath();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email]);
 
   return (

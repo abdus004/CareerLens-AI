@@ -2,6 +2,7 @@ import ipaddress
 import os
 import socket
 import uuid
+import logging
 from urllib.parse import urlparse
 
 import requests
@@ -13,6 +14,8 @@ from app.services.profile_resume_analysis_service import run_profile_resume_anal
 from app.utils.security import get_authenticated_email, require_self
 from app.utils.errors import raise_clean_500
 import json
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/dashboard",
@@ -80,7 +83,7 @@ def _backfill_ai_suggestions(email: str, resume_url: str) -> None:
     failure, same as the original call site in routes/resume.py.
     """
     if not _is_safe_external_url(resume_url):
-        print(f"[dashboard] AI Suggestions backfill skipped for {email}: unsafe resume_url")
+        logger.warning("[dashboard] AI Suggestions backfill skipped for %s: unsafe resume_url", email)
         return
 
     temp_path = None
@@ -96,7 +99,7 @@ def _backfill_ai_suggestions(email: str, resume_url: str) -> None:
         if resume_text.strip():
             run_profile_resume_analysis(email, resume_text)
     except Exception as e:
-        print(f"[dashboard] AI Suggestions backfill failed for {email}: {e}")
+        logger.warning("[dashboard] AI Suggestions backfill failed for %s: %s", email, e)
     finally:
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)

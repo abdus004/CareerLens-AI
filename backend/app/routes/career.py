@@ -8,6 +8,9 @@ from app.services.notification_service import create_notification
 from app.utils.security import get_authenticated_email, require_self
 from app.utils.errors import raise_clean_500
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/career",
@@ -20,17 +23,24 @@ def generate_career_analysis(email: str):
     Generates career analysis and saves it into career_analysis table.
     """
 
-    # Fetch profile
+    # maybe_single() (not single()) so a missing profile falls through
+    # to the "not found" check below, rather than single() raising an
+    # APIError before that check is ever reached - which previously
+    # turned a legitimate 404 into a generic 500. Note maybe_single()
+    # returns None itself (not a response object with .data=None) when
+    # zero rows match, per postgrest-py - `if not response` below
+    # handles that, matching the guard pattern already used correctly
+    # in routes/dashboard.py's own maybe_single() calls.
     response = (
         supabase
         .table("profiles")
         .select("*")
         .eq("email", email)
-        .single()
+        .maybe_single()
         .execute()
     )
 
-    if not response.data:
+    if not response or not response.data:
         raise HTTPException(
             status_code=404,
             detail="Profile not found"
@@ -52,20 +62,17 @@ def generate_career_analysis(email: str):
     # Generate Prompt
     prompt = career_recommendation_prompt(profile)
 
-    print("\n" + "=" * 100)
-    print("CAREER PROMPT SENT TO GEMINI")
-    print("=" * 100)
-    print(prompt)
-    print("=" * 100)
+    # Not print() - this prompt contains the full user profile (name,
+    # education, skills, etc.), and career_analysis results similarly.
+    # Both are silent by default (only emitted if the app's logging
+    # level is explicitly set to DEBUG), matching the same fix already
+    # applied to resume.py's resume-text logging.
+    logger.debug("Career prompt sent to Gemini for %s:\n%s", email, prompt)
 
     # Generate AI response
     result = generate_json(prompt)
 
-    print("\n" + "=" * 100)
-    print("GEMINI RESPONSE")
-    print("=" * 100)
-    print(result)
-    print("=" * 100)
+    logger.debug("Gemini career response for %s: %s", email, result)
 
     # Save into career_analysis table
     existing = (

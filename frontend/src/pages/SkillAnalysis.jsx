@@ -1,8 +1,5 @@
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import {
-  BarChart3,
-  TrendingUp,
-  Code,
   RefreshCw,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -45,7 +42,6 @@ export default function SkillAnalysis() {
   const [isEditing, setIsEditing] = useState(false);
   const [buttonText, setButtonText] = useState("Edit");
   const [isSaving, setIsSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
   const [reanalyzing, setReanalyzing] = useState(false);
   const [reanalyzeText, setReanalyzeText] = useState("✨ Reanalyze");
 
@@ -181,7 +177,6 @@ export default function SkillAnalysis() {
         skill_levels: skillLevels,
       });
 
-      setHasChanges(false);
       setButtonText("✓ Saved");
 
       setTimeout(() => {
@@ -199,8 +194,13 @@ export default function SkillAnalysis() {
   };
 
   useEffect(() => {
-    setLoading(true);
+    // No setLoading(true) here - loading already starts true (see
+    // useState(true) above), so this was a redundant synchronous
+    // setState in the effect body. The Retry button below still calls
+    // setLoading(true) explicitly, since by the time a user can click
+    // Retry, loading is already false.
     loadSkillData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -384,8 +384,6 @@ export default function SkillAnalysis() {
                       value={skill.level}
                       onChange={(e) => {
                         const value = Number(e.target.value);
-
-                        setHasChanges(true);
 
                         setSkills((prev) =>
                             prev.map((s) =>

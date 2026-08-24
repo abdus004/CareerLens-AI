@@ -1,5 +1,6 @@
 import uuid
 import traceback
+import logging
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Depends
 from pydantic import BaseModel
@@ -7,6 +8,9 @@ from pydantic import BaseModel
 from app.database.db import supabase
 from app.utils.security import get_authenticated_email, require_self
 from app.utils.storage import delete_storage_object as _delete_storage_object
+from app.utils.errors import raise_clean_500
+
+logger = logging.getLogger(__name__)
 
 # Reused, not duplicated - see the module docstrings on each of these
 # for why they're safe to call directly as plain Python functions
@@ -211,7 +215,7 @@ async def upload_avatar(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 @router.delete("/avatar")
@@ -234,7 +238,7 @@ def remove_avatar(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 # ------------------------------------------------------------------
@@ -286,7 +290,7 @@ async def replace_resume(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
     warnings = []
 
@@ -350,7 +354,7 @@ def update_theme(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 # ------------------------------------------------------------------
@@ -379,7 +383,7 @@ def update_notifications(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 # ------------------------------------------------------------------
@@ -418,7 +422,8 @@ def change_password(
     try:
         supabase.auth.admin.update_user_by_id(user_id, {"password": payload.new_password})
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Could not update password: {e}")
+        logger.exception("Could not update password for %s", payload.email)
+        raise HTTPException(status_code=500, detail="Could not update your password. Please try again.")
 
     return {"success": True, "message": "Your password has been updated."}
 
@@ -454,16 +459,23 @@ def delete_account(
         _delete_all_user_data(payload.email)
     except Exception as e:
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Could not delete account data: {e}")
+        logger.exception("Could not delete account data for %s", payload.email)
+        raise HTTPException(status_code=500, detail="Could not delete account data. Please try again or contact support.")
 
     try:
         supabase.auth.admin.delete_user(user_id)
     except Exception as e:
+        # Deliberately NOT a generic "something went wrong" message here -
+        # the user's data is already gone at this point, so they need to
+        # know their login may still exist and to contact support, not
+        # just that "an error occurred." The raw exception is logged
+        # server-side rather than shown, same as everywhere else.
+        logger.exception("Account data deleted for %s but Supabase Auth identity removal failed", payload.email)
         raise HTTPException(
             status_code=500,
             detail=(
                 "Your account data was deleted, but we couldn't fully remove your "
-                f"login. Please contact support. ({e})"
+                "login. Please contact support."
             )
         )
 
