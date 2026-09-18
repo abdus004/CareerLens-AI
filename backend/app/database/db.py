@@ -70,8 +70,24 @@ if not SUPABASE_URL:
 if not SUPABASE_KEY:
     raise ValueError("SUPABASE_KEY is missing in .env")
 
-# Create Supabase client
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Create a stateless service-role client for normal backend data,
+# Storage, and token-validation operations. It must never retain a
+# request user's session, because this singleton is shared by routes,
+# background tasks, and the scheduler.
+supabase: Client = create_client(
+    SUPABASE_URL,
+    SUPABASE_KEY,
+    options=ClientOptions(auto_refresh_token=False, persist_session=False),
+)
+
+# Login and password-verification calls return user sessions. Keep
+# those Auth-only calls off the shared data client so their in-memory
+# session state can never replace its service-role Authorization header.
+supabase_auth: Client = create_client(
+    SUPABASE_URL,
+    SUPABASE_KEY,
+    options=ClientOptions(auto_refresh_token=False, persist_session=False),
+)
 
 # Admin Auth calls must not share the normal client's mutable user
 # session. Authentication flows such as sign_in_with_password() can

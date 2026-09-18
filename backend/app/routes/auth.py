@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException
 from app.models.auth import UserSignup, UserLogin
-from app.database.db import supabase
+from app.database.db import supabase_auth
 
 try:
     from gotrue.errors import AuthError, AuthUnknownError
@@ -45,7 +45,7 @@ def signup(user: UserSignup):
     normalized_email = str(user.email).strip().lower()
 
     try:
-        response = supabase.auth.sign_up(
+        response = supabase_auth.auth.sign_up(
             {
                 "email": normalized_email,
                 "password": user.password,
@@ -115,7 +115,7 @@ def login(user: UserLogin):
 
     try:
 
-        response = supabase.auth.sign_in_with_password(
+        response = supabase_auth.auth.sign_in_with_password(
             {
                 "email": str(user.email).strip().lower(),
                 "password": user.password

@@ -5,7 +5,7 @@ import logging
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Depends
 from pydantic import BaseModel
 
-from app.database.db import supabase, supabase_admin
+from app.database.db import supabase, supabase_admin, supabase_auth
 from app.utils.security import get_authenticated_email, require_self
 from app.utils.storage import delete_storage_object as _delete_storage_object
 from app.utils.errors import raise_clean_500
@@ -410,7 +410,7 @@ def change_password(
     # used by POST /auth/login - a wrong current password fails here
     # with a 401 before anything is changed.
     try:
-        verification = supabase.auth.sign_in_with_password({
+        verification = supabase_auth.auth.sign_in_with_password({
             "email": payload.email,
             "password": payload.current_password,
         })
@@ -446,7 +446,7 @@ def delete_account(
     require_self(payload.email, auth_email)
 
     try:
-        verification = supabase.auth.sign_in_with_password({
+        verification = supabase_auth.auth.sign_in_with_password({
             "email": payload.email,
             "password": payload.password,
         })
