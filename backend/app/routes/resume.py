@@ -7,6 +7,7 @@ from app.services.profile_resume_analysis_service import run_profile_resume_anal
 from app.services.skill_unification_service import build_unified_skills
 from app.utils.security import get_authenticated_email, require_self
 from app.utils.storage import delete_storage_object
+from app.utils.errors import raise_clean_500
 
 import uuid
 import os
@@ -201,10 +202,7 @@ async def upload_resume(
         raise
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        raise_clean_500(e)
 
     finally:
         if temp_path and os.path.exists(temp_path):
@@ -262,10 +260,7 @@ async def analyze_resume_route(
         raise
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        raise_clean_500(e)
 
     finally:
         if temp_path and os.path.exists(temp_path):

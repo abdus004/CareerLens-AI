@@ -5,10 +5,11 @@ import logging
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Depends
 from pydantic import BaseModel
 
-from app.database.db import supabase
+from app.database.db import supabase, supabase_admin
 from app.utils.security import get_authenticated_email, require_self
 from app.utils.storage import delete_storage_object as _delete_storage_object
 from app.utils.errors import raise_clean_500
+from app.utils.validators import validate_password
 
 logger = logging.getLogger(__name__)
 
@@ -397,10 +398,12 @@ def change_password(
 ):
     require_self(payload.email, auth_email)
 
-    if len(payload.new_password) < 8:
+    try:
+        validate_password(payload.new_password)
+    except ValueError as e:
         raise HTTPException(
             status_code=400,
-            detail="New password must be at least 8 characters long."
+            detail=str(e)
         )
 
     # Verifies the current password using the exact same call already
@@ -420,7 +423,7 @@ def change_password(
     user_id = verification.user.id
 
     try:
-        supabase.auth.admin.update_user_by_id(user_id, {"password": payload.new_password})
+        supabase_admin.auth.admin.update_user_by_id(user_id, {"password": payload.new_password})
     except Exception as e:
         logger.exception("Could not update password for %s", payload.email)
         raise HTTPException(status_code=500, detail="Could not update your password. Please try again.")
@@ -463,7 +466,7 @@ def delete_account(
         raise HTTPException(status_code=500, detail="Could not delete account data. Please try again or contact support.")
 
     try:
-        supabase.auth.admin.delete_user(user_id)
+        supabase_admin.auth.admin.delete_user(user_id)
     except Exception as e:
         # Deliberately NOT a generic "something went wrong" message here -
         # the user's data is already gone at this point, so they need to

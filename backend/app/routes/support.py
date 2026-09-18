@@ -1,5 +1,4 @@
 import uuid
-import traceback
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -10,6 +9,7 @@ from app.database.db import supabase
 from app.ai.gemini import generate_json
 from app.ai.prompts import support_assistant_prompt
 from app.utils.security import get_authenticated_email, require_self
+from app.utils.errors import raise_clean_500
 
 router = APIRouter(
     prefix="/support",
@@ -94,11 +94,7 @@ def support_assistant_chat(
         return {"reply": reply, "in_scope": in_scope}
 
     except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail=f"The support assistant is temporarily unavailable: {e}"
-        )
+        raise_clean_500(e)
 
 
 # ------------------------------------------------------------------
@@ -139,7 +135,7 @@ def submit_feedback(
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise_clean_500(e)
 
 
 # ------------------------------------------------------------------
@@ -243,9 +239,6 @@ async def submit_ticket(
             error_text = str(e).lower()
             if "duplicate" in error_text or "unique" in error_text:
                 continue
-            raise HTTPException(status_code=500, detail=str(e))
+            raise_clean_500(e)
 
-    raise HTTPException(
-        status_code=500,
-        detail=f"Could not generate a unique ticket reference: {last_error}"
-    )
+    raise_clean_500(last_error or RuntimeError("Could not generate a unique ticket reference."))

@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 import httpx
-from supabase import create_client, Client
+from supabase import create_client, Client, ClientOptions
 
 # Load environment variables. override=True is intentional and load-
 # bearing here, not a stylistic default: python-dotenv's own default
@@ -72,6 +72,16 @@ if not SUPABASE_KEY:
 
 # Create Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# Admin Auth calls must not share the normal client's mutable user
+# session. Authentication flows such as sign_in_with_password() can
+# persist a user's access token on that client, which would override
+# the service-role credential on a later Admin Auth request.
+supabase_admin: Client = create_client(
+    SUPABASE_URL,
+    SUPABASE_KEY,
+    options=ClientOptions(auto_refresh_token=False, persist_session=False),
+)
 
 import logging
 

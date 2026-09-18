@@ -20,6 +20,20 @@ LINKEDIN_RE = re.compile(r"^https?://([a-z]{2,3}\.)?linkedin\.com/in/[A-Za-z0-9\
 GITHUB_RE = re.compile(r"^https?://(www\.)?github\.com/[A-Za-z0-9\-_]+/?$", re.IGNORECASE)
 
 
+def validate_password(value: str) -> str:
+    if len(value) < 8:
+        raise ValueError("Password must be at least 8 characters long.")
+    if not any(c.isupper() for c in value):
+        raise ValueError("Password must contain at least one uppercase letter.")
+    if not any(c.islower() for c in value):
+        raise ValueError("Password must contain at least one lowercase letter.")
+    if not any(c.isdigit() for c in value):
+        raise ValueError("Password must contain at least one number.")
+    if not any(not c.isalnum() for c in value):
+        raise ValueError("Password must contain at least one special character.")
+    return value
+
+
 def validate_full_name(value: str) -> str:
     name = (value or "").strip()
 
