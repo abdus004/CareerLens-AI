@@ -21,7 +21,6 @@ export default class Hero3DErrorBoundary extends Component {
 
   componentDidCatch(error) {
     if (import.meta.env?.DEV) {
-      // eslint-disable-next-line no-console
       console.warn("Hero3D failed to render, falling back to static visual:", error);
     }
   }

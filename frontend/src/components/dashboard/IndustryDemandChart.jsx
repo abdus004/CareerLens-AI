@@ -19,7 +19,6 @@ const colors = [
 
 export default function IndustryDemandChart({
   data = [],
-  growth = 0,
 }) {
   return (
     <ResponsiveContainer width="100%" height={250}>

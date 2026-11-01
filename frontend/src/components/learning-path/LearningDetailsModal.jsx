@@ -110,7 +110,6 @@ export default function LearningDetailsModal({ email, skill, onClose }) {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skill?.skill, email]);
 
   const details = data?.details;

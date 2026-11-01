@@ -109,7 +109,7 @@ export default function UploadCertificateModal({
         });
       }
       setExtractionDone(true);
-    } catch (err) {
+    } catch {
       // Extraction failing is never fatal - the user just falls back
       // to filling the fields in manually, exactly as before this
       // feature existed.
