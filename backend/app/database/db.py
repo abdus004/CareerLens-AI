@@ -99,6 +99,20 @@ supabase_admin: Client = create_client(
     options=ClientOptions(auto_refresh_token=False, persist_session=False),
 )
 
+
+def create_request_auth_client() -> Client:
+    """Return an isolated Auth client for one refresh/logout operation.
+
+    Auth refresh and logout mutate the client's in-memory session. They must
+    never use one of this module's shared clients, which serve concurrent
+    requests and background jobs.
+    """
+    return create_client(
+        SUPABASE_URL,
+        SUPABASE_KEY,
+        options=ClientOptions(auto_refresh_token=False, persist_session=False),
+    )
+
 import logging
 
 logger = logging.getLogger(__name__)

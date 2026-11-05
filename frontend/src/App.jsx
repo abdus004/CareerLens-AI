@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import { RefreshCw } from "lucide-react";
 
 import Landing from "./pages/Landing";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 // Code-split every route except Landing, which stays eager so the "/"
 // entry point (the very first thing almost every visitor sees) has
@@ -46,6 +47,8 @@ function RouteFallback() {
   );
 }
 
+const protectedPage = (page) => <ProtectedRoute>{page}</ProtectedRoute>;
+
 export default function App() {
   return (
     <Suspense fallback={<RouteFallback />}>
@@ -58,93 +61,93 @@ export default function App() {
       <Route path="/signup" element={<Signup />} />
 
       {/* Profile Setup */}
-      <Route path="/profile-setup" element={<ProfileSetup />} />
+      <Route path="/profile-setup" element={protectedPage(<ProfileSetup />)} />
 
       {/* Dashboard */}
-      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/dashboard" element={protectedPage(<Dashboard />)} />
 
       {/* Career Intelligence */}
       <Route
         path="/career-intelligence"
-        element={<CareerIntelligence />}
+        element={protectedPage(<CareerIntelligence />)}
       />
       <Route
   path="/resume-analyzer"
-  element={<ResumeAnalyzer />}
+  element={protectedPage(<ResumeAnalyzer />)}
 />
 <Route
   path="/skill-analysis"
-  element={<SkillAnalysis />}
+  element={protectedPage(<SkillAnalysis />)}
 />
 
 <Route
   path="/learning-path"
-  element={<LearningPath />}
+  element={protectedPage(<LearningPath />)}
 />
 
 <Route
   path="/opportunities"
-  element={<CareerOpportunities />}
+  element={protectedPage(<CareerOpportunities />)}
 />
 
 <Route
   path="/settings"
-  element={<Settings />}
+  element={protectedPage(<Settings />)}
 />
 
 <Route
   path="/mock-interview"
-  element={<MockInterview />}
+  element={protectedPage(<MockInterview />)}
 />
 
 <Route
   path="/mock-interview/mode"
-  element={<InterviewMode />}
+  element={protectedPage(<InterviewMode />)}
 />
 
 <Route
   path="/mock-interview/chat/:interviewId"
-  element={<ChatInterview />}
+  element={protectedPage(<ChatInterview />)}
 />
 
 <Route
   path="/mock-interview/voice/:interviewId"
-  element={<VoiceInterview />}
+  element={protectedPage(<VoiceInterview />)}
 />
 
 <Route
   path="/mock-interview/result/:interviewId"
-  element={<InterviewResult />}
+  element={protectedPage(<InterviewResult />)}
 />
 
 <Route
   path="/assessments"
-  element={<Assessments />}
+  element={protectedPage(<Assessments />)}
 />
 
 <Route
   path="/assessments/test/:assessmentId"
-  element={<AssessmentTest />}
+  element={protectedPage(<AssessmentTest />)}
 />
 
 <Route
   path="/assessments/result/:assessmentId"
-  element={<AssessmentResult />}
+  element={protectedPage(<AssessmentResult />)}
 />
 
 <Route
   path="/certificates"
-  element={<Certificates />}
+  element={protectedPage(<Certificates />)}
 />
 
 <Route
   path="/placement-drives"
-  element={<UpcomingDrivesPage />}
+  element={protectedPage(<UpcomingDrivesPage />)}
 />
 
 <Route
   path="/help-support"
-  element={<HelpSupport />}
+  element={protectedPage(<HelpSupport />)}
 />
 
       </Routes>

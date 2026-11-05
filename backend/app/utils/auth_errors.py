@@ -73,6 +73,8 @@ class AuthFailureKind(str, Enum):
     SERVICE_UNAVAILABLE = "service_unavailable"
     SERVICE_MISCONFIGURED = "service_misconfigured"
     UNEXPECTED = "unexpected"
+    SESSION_EXPIRED = "session_expired"
+    AUTHORIZATION_DENIED = "authorization_denied"
 
 
 @dataclass(frozen=True)
@@ -122,6 +124,14 @@ _FAILURES = {
         AuthFailureKind.UNEXPECTED,
         500,
         "Something went wrong. Please try again.",
+    ),
+    AuthFailureKind.SESSION_EXPIRED: AuthFailure(
+        AuthFailureKind.SESSION_EXPIRED, 401, "Your session has expired. Please log in again."
+    ),
+    AuthFailureKind.AUTHORIZATION_DENIED: AuthFailure(
+        AuthFailureKind.AUTHORIZATION_DENIED,
+        403,
+        "You don't have permission to perform this action.",
     ),
 }
 
@@ -203,6 +213,57 @@ def classify_auth_exception(exc: BaseException) -> AuthFailure:
         return _FAILURES[AuthFailureKind.BAD_REQUEST]
 
     return _FAILURES[AuthFailureKind.UNEXPECTED]
+
+
+def classify_session_exception(exc: BaseException) -> AuthFailure:
+    """Classify token validation/refresh failures without masking outages as 401.
+
+    Unlike password login, a 401 from Supabase while validating a bearer token
+    is normally an expired or invalid user session, not a rejected backend API
+    key. This contextual classifier preserves that distinction.
+    """
+    if isinstance(exc, AuthError):
+        status = getattr(exc, "status", None)
+        code = str(getattr(exc, "code", "") or "").lower()
+        message = str(getattr(exc, "message", "") or exc).lower()
+
+        if status == 429 or code in _RATE_LIMIT_CODES:
+            return _FAILURES[AuthFailureKind.RATE_LIMITED]
+
+        if isinstance(exc, AuthUnknownError) or (isinstance(status, int) and status >= 500):
+            return _FAILURES[AuthFailureKind.SERVICE_UNAVAILABLE]
+
+        # A rejected server API key can also arrive as 401/403. It is
+        # distinguishable from a user JWT by the provider's message.
+        if "api key" in message:
+            return _FAILURES[AuthFailureKind.SERVICE_MISCONFIGURED]
+
+        if status == 403 or code in {"insufficient_aal", "not_admin"}:
+            return _FAILURES[AuthFailureKind.AUTHORIZATION_DENIED]
+
+        token_codes = {
+            "invalid_jwt",
+            "jwt_expired",
+            "refresh_token_not_found",
+            "refresh_token_already_used",
+            "session_not_found",
+        }
+        if status in (400, 401) or code in token_codes or "refresh token" in message:
+            return _FAILURES[AuthFailureKind.SESSION_EXPIRED]
+
+    base = classify_auth_exception(exc)
+    if base.kind in {
+        AuthFailureKind.SERVICE_UNAVAILABLE,
+        AuthFailureKind.SERVICE_MISCONFIGURED,
+        AuthFailureKind.UNEXPECTED,
+        AuthFailureKind.RATE_LIMITED,
+    }:
+        return base
+
+    # A token endpoint must never turn an unknown client-side auth error into
+    # a successful/ambiguous response. It is safe to ask the user to sign in
+    # again, while server/rate-limit failures above retain their real status.
+    return _FAILURES[AuthFailureKind.SESSION_EXPIRED]
 
 
 def log_auth_failure(

@@ -1,34 +1,76 @@
 import axios from "axios";
-import { getCurrentSession } from "../utils/session";
+import { clearSession, getCurrentSession, refreshSession } from "../utils/session";
+
+const EXCLUDED_REFRESH_PATHS = [
+  "/auth/login",
+  "/auth/signup",
+  "/auth/refresh",
+  "/auth/logout",
+  "/settings/change-password",
+  "/settings/account/delete",
+];
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL,
-    headers: {
-        "Content-Type": "application/json",
-    },
+  baseURL: import.meta.env.VITE_API_URL,
+  headers: { "Content-Type": "application/json" },
 });
 
-// Attaches the logged-in user's Supabase access token to every
-// request made through this client, so backend routes that check
-// identity (see backend/app/utils/security.py -> get_authenticated_email)
-// can verify who is actually calling, instead of trusting whatever
-// `email` value happens to be in the request body/path/query.
-//
-// Silently sends no Authorization header when there's no session
-// (e.g. Login/Signup themselves, which run before any session
-// exists) - those endpoints don't require it, and routes that do
-// require it will correctly respond 401 rather than fail in some
-// more confusing way.
-api.interceptors.request.use((config) => {
-    const session = getCurrentSession();
-    const token = session?.access_token;
+function requestPath(config) {
+  return String(config?.url || "").split("?")[0];
+}
 
-    if (token) {
-        config.headers = config.headers || {};
-        config.headers.Authorization = `Bearer ${token}`;
+export function isRefreshExcluded(config) {
+  return EXCLUDED_REFRESH_PATHS.some((path) => requestPath(config).endsWith(path));
+}
+
+export function isSessionFailure(response) {
+  const detail = String(response?.data?.detail || "").toLowerCase();
+  return /(session|authorization|bearer|access token|jwt|token.*expired|expired.*token)/.test(detail);
+}
+
+api.interceptors.request.use((config) => {
+  const token = getCurrentSession()?.access_token;
+  config.headers = config.headers || {};
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    // Do not carry an Axios default/header from a previous account into an
+    // unauthenticated request.
+    delete config.headers.Authorization;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const config = error?.config;
+    const response = error?.response;
+    if (
+      response?.status !== 401 ||
+      !config ||
+      config.__sessionRetry ||
+      isRefreshExcluded(config) ||
+      !isSessionFailure(response)
+    ) {
+      return Promise.reject(error);
     }
 
-    return config;
-});
+    config.__sessionRetry = true;
+    try {
+      const session = await refreshSession();
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${session.access_token}`;
+      return api(config);
+    } catch (refreshError) {
+      // Only a definitively invalid/rotated refresh token logs the browser
+      // out. Service outages/rate limits leave the session in place so a
+      // later request can recover without forcing an unnecessary login.
+      if (refreshError?.status === 401) clearSession();
+      error.sessionRefreshError = refreshError;
+      return Promise.reject(error);
+    }
+  }
+);
 
 export default api;

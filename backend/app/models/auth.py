@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.utils.validators import validate_full_name, validate_password
 
@@ -22,3 +22,14 @@ class UserSignup(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+
+class RefreshSessionRequest(BaseModel):
+    refresh_token: str = Field(min_length=1, max_length=4096)
+
+
+class LogoutRequest(BaseModel):
+    # The current access token comes from Authorization. The refresh token is
+    # needed only to establish the same request-scoped client session before
+    # invoking Supabase's local-scope sign-out API.
+    refresh_token: str = Field(min_length=1, max_length=4096)

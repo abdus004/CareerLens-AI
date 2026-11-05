@@ -1,21 +1,32 @@
 import logging
 
-from fastapi import APIRouter, HTTPException
-from app.models.auth import UserSignup, UserLogin
-from app.database.db import supabase_auth
+from fastapi import APIRouter, Depends, Header, HTTPException
+from app.models.auth import LogoutRequest, RefreshSessionRequest, UserLogin, UserSignup
+from app.database.db import create_request_auth_client, supabase_auth
 from app.utils.auth_errors import (
     AuthError,
     AuthFailureKind,
     AuthUnknownError,
     SERVER_SIDE_KINDS,
     classify_auth_exception,
+    classify_session_exception,
     failure_for,
     log_auth_failure,
 )
+from app.utils.security import get_authenticated_email
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+def _bearer_token(authorization: str | None) -> str:
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid authorization. Please log in again.")
+    token = authorization[7:].strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing or invalid authorization. Please log in again.")
+    return token
 
 
 def _signup_user_message(e: Exception, fallback: str) -> str:
@@ -153,3 +164,42 @@ def login(user: UserLogin):
         "session": response.session,
         "user": response.user
     }
+
+
+@router.post("/refresh")
+def refresh_session(payload: RefreshSessionRequest):
+    """Rotate a Supabase refresh token using an isolated per-request client."""
+    try:
+        client = create_request_auth_client()
+        response = client.auth.refresh_session(payload.refresh_token)
+    except Exception as exc:
+        failure = classify_session_exception(exc)
+        log_auth_failure(logger, "session refresh", exc, failure)
+        raise HTTPException(status_code=failure.status_code, detail=failure.detail)
+
+    if not response or not response.session or not response.user:
+        logger.error("session refresh failed: Supabase returned no session or user")
+        raise HTTPException(status_code=500, detail=failure_for(AuthFailureKind.UNEXPECTED).detail)
+
+    return {"message": "Session refreshed", "session": response.session, "user": response.user}
+
+
+@router.post("/logout")
+def logout(
+    payload: LogoutRequest,
+    authorization: str | None = Header(default=None),
+    _auth_email: str = Depends(get_authenticated_email),
+):
+    """Revoke only the session represented by the current bearer token."""
+    access_token = _bearer_token(authorization)
+    try:
+        client = create_request_auth_client()
+        client.auth.set_session(access_token, payload.refresh_token)
+        # Supabase defaults to global logout; local is the current session only.
+        client.auth.sign_out({"scope": "local"})
+    except Exception as exc:
+        failure = classify_session_exception(exc)
+        log_auth_failure(logger, "session logout", exc, failure)
+        raise HTTPException(status_code=failure.status_code, detail=failure.detail)
+
+    return {"success": True, "message": "Signed out successfully."}

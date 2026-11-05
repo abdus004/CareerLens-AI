@@ -19,6 +19,11 @@ backend) to validate the token it issued.
 from fastapi import Header, HTTPException
 
 from app.database.db import supabase
+from app.utils.auth_errors import classify_session_exception, log_auth_failure
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_authenticated_email(authorization: str | None = Header(default=None)) -> str:
@@ -47,11 +52,10 @@ def get_authenticated_email(authorization: str | None = Header(default=None)) ->
 
     try:
         result = supabase.auth.get_user(token)
-    except Exception:
-        raise HTTPException(
-            status_code=401,
-            detail="Your session has expired. Please log in again.",
-        )
+    except Exception as exc:
+        failure = classify_session_exception(exc)
+        log_auth_failure(logger, "token validation", exc, failure)
+        raise HTTPException(status_code=failure.status_code, detail=failure.detail)
 
     user = getattr(result, "user", None)
     email = getattr(user, "email", None) if user else None

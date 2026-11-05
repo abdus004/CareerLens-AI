@@ -1,4 +1,4 @@
-import { clearSession } from "../../utils/session";
+import { logoutSession } from "../../utils/session";
 import {
   Home,
   Brain,
@@ -79,9 +79,11 @@ export default function Sidebar({
   const navigate = useNavigate();
   const location = useLocation();
   const handleLogout = () => {
-  clearSession();
-  navigate("/login");
-};
+    // logoutSession clears browser state before awaiting the request, so no
+    // protected content remains visible if the network is slow or unavailable.
+    void logoutSession();
+    navigate("/login", { replace: true });
+  };
   return (
     <aside
       className={`

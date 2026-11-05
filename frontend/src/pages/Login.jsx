@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import InputField from "../components/InputField";
 import api from "../services/api";
@@ -9,12 +9,15 @@ import { getErrorMessage } from "../utils/apiError";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
-  const [error, setError] = useState("");
+  const [error, setError] = useState(
+    location.state?.sessionExpired ? "Your session has expired. Please sign in again." : ""
+  );
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -51,7 +54,10 @@ export default function Login() {
 
       saveSession(data.user, data.session, rememberMe);
 
-      navigate("/dashboard");
+      const destination = location.state?.from;
+      navigate(destination?.pathname ? `${destination.pathname}${destination.search || ""}${destination.hash || ""}` : "/dashboard", {
+        replace: true,
+      });
     } catch (err) {
       setError(getErrorMessage(err, "Invalid email or password."));
     } finally {
