@@ -3,33 +3,31 @@ import logging
 from fastapi import APIRouter, HTTPException
 from app.models.auth import UserSignup, UserLogin
 from app.database.db import supabase_auth
-
-try:
-    from gotrue.errors import AuthError, AuthUnknownError
-except ImportError:  # pragma: no cover - gotrue ships as a supabase dependency
-    AuthError = ()
-    AuthUnknownError = ()
+from app.utils.auth_errors import (
+    AuthError,
+    AuthFailureKind,
+    AuthUnknownError,
+    SERVER_SIDE_KINDS,
+    classify_auth_exception,
+    failure_for,
+    log_auth_failure,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-def _auth_error_detail(e: Exception, fallback: str) -> str:
+def _signup_user_message(e: Exception, fallback: str) -> str:
     """
-    Supabase's own Auth errors (AuthApiError, AuthInvalidCredentialsError,
-    etc. - all subclasses of AuthError) carry a curated, human-written
-    message specifically meant to be shown to end users ("Invalid login
-    credentials", "Password should be at least N characters", ...) - a
-    fundamentally different, already-safe category from a raw Postgres/
-    PostgREST internal exception (see app/utils/errors.py). AuthUnknownError
-    is the one exception: it wraps an arbitrary unexpected underlying
-    error, so its text is treated the same as any other unsafe exception
-    rather than trusted.
+    Supabase's own Auth errors (AuthApiError etc. - all subclasses of
+    AuthError) carry a curated, human-written message meant to be shown
+    to end users ("Password should be at least N characters", ...).
+    AuthUnknownError is the exception: it wraps an arbitrary unexpected
+    underlying error, so its text is never trusted or shown.
     """
     if isinstance(e, AuthError) and not isinstance(e, AuthUnknownError):
         return str(e)
-    logger.exception(fallback)
     return fallback
 
 
@@ -71,9 +69,17 @@ def signup(user: UserSignup):
                 detail="An account with this email already exists. Please log in instead."
             )
 
+        failure = classify_auth_exception(e)
+        log_auth_failure(logger, "signup", e, failure)
+
+        # Service/configuration problems and rate limits get their own
+        # status codes instead of being reported as a bad sign-up request.
+        if failure.kind in SERVER_SIDE_KINDS or failure.kind == AuthFailureKind.RATE_LIMITED:
+            raise HTTPException(status_code=failure.status_code, detail=failure.detail)
+
         raise HTTPException(
             status_code=400,
-            detail=_auth_error_detail(e, "We couldn't create your account. Please try again.")
+            detail=_signup_user_message(e, "We couldn't create your account. Please try again.")
         )
 
     # When email confirmation IS enabled, Supabase intentionally does
@@ -114,7 +120,6 @@ def signup(user: UserSignup):
 def login(user: UserLogin):
 
     try:
-
         response = supabase_auth.auth.sign_in_with_password(
             {
                 "email": str(user.email).strip().lower(),
@@ -122,14 +127,29 @@ def login(user: UserLogin):
             }
         )
 
-        return {
-            "message": "Login successful",
-            "session": response.session,
-            "user": response.user
-        }
-
     except Exception as e:
+        # Each kind of failure gets its own status code and a fixed,
+        # user-safe message (see app/utils/auth_errors.py):
+        #   wrong email/password -> 401, unconfirmed email -> 403,
+        #   too many attempts -> 429, Supabase down/misconfigured -> 503,
+        #   anything unexpected -> 500.
+        # The real reason is written to the server log, never sent to the
+        # client, and the log never contains the email or password.
+        failure = classify_auth_exception(e)
+        log_auth_failure(logger, "login", e, failure)
+        raise HTTPException(status_code=failure.status_code, detail=failure.detail)
+
+    if not response or not response.session or not response.user:
+        # Supabase reported success but returned no usable session. Report
+        # it as a server problem rather than as a credentials problem.
+        logger.error("login failed: Supabase returned a success response without a session or user")
         raise HTTPException(
-            status_code=401,
-            detail=_auth_error_detail(e, "We couldn't log you in. Please check your credentials and try again.")
+            status_code=500,
+            detail=failure_for(AuthFailureKind.UNEXPECTED).detail,
         )
+
+    return {
+        "message": "Login successful",
+        "session": response.session,
+        "user": response.user
+    }
