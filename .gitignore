@@ -3,8 +3,13 @@ __pycache__/
 *.py[cod]
 *.pyo
 
-# Virtual Environment
+# Environment files (example templates remain versioned)
 .env
+.env.*
+!.env.example
+!**/.env.example
+
+# Virtual Environment
 venv/
 .venv/
 
@@ -18,12 +23,20 @@ node_modules/
 # Logs
 *.log
 
+# Test and coverage output
+.pytest_cache/
+.coverage
+.coverage.*
+coverage/
+htmlcov/
+
 # VS Code
 .vscode/
 
 # Build
 dist/
 build/
+.vite/
 
 # OS
 .DS_Store
